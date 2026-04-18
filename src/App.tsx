@@ -102,9 +102,6 @@ export default function App() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentFosName, setCurrentFosName] = useState<string>(() => {
-    return localStorage.getItem('currentFosName') || FOS_NAMES[0];
-  });
   const [editingCallId, setEditingCallId] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
 
@@ -458,25 +455,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Current FOS</span>
-              <Select value={currentFosName} onValueChange={(v) => {
-                setCurrentFosName(v);
-                localStorage.setItem('currentFosName', v);
-              }}>
-                <SelectTrigger className="w-48 bg-white border-none shadow-lg shadow-indigo-100/50 rounded-xl font-bold text-indigo-700 h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-none shadow-2xl">
-                  {FOS_NAMES.map(name => (
-                    <SelectItem key={name} value={name} className="rounded-lg font-medium">{name}</SelectItem>
-                  ))}
-                  <SelectItem value="Other" className="rounded-lg italic">Switch User...</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
+            <div className="flex items-center gap-3">
             {activeTab === 'calls' && (
               <BulkUploadDialog 
                 title="Calls" 
