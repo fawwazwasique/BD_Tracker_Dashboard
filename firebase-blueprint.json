@@ -1,0 +1,151 @@
+{
+  "entities": {
+    "Call": {
+      "title": "Call Interaction",
+      "description": "Information about a customer call interaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string" },
+        "location": { "type": "string" },
+        "dgSetDetails": {
+          "type": "object",
+          "properties": {
+            "kva": { "type": "string" },
+            "engineMake": { "type": "string" },
+            "esn": { "type": "string" }
+          }
+        },
+        "partNo": { "type": "string" },
+        "partDesc": { "type": "string" },
+        "partCategory": { "type": "string" },
+        "fosName": { "type": "string" },
+        "followUpType": { "type": "string" },
+        "callType": { "type": "string" },
+        "status": { "type": "string" },
+        "remarks": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "followUpDate": { "type": "string" },
+        "appointmentDate": { "type": "string" },
+        "appointmentTime": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["customerName", "createdAt", "userId"]
+    },
+    "Quotation": {
+      "title": "Quotation",
+      "description": "Details of a business quotation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "quotationNo": { "type": "string" },
+        "customerName": { "type": "string" },
+        "address": { "type": "string" },
+        "territory": { "type": "string" },
+        "branch": { "type": "string" },
+        "leadOwner": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "emailId": { "type": "string" },
+        "dgRatingKva": { "type": "string" },
+        "engineMake": { "type": "string" },
+        "esn": { "type": "string" },
+        "engineModel": { "type": "string" },
+        "partNo": { "type": "string" },
+        "partDesc": { "type": "string" },
+        "partCategory": { "type": "string" },
+        "qty": { "type": "number" },
+        "basicAmount": { "type": "number" },
+        "status": { "type": "string" },
+        "salesStage": { "type": "string" },
+        "stagePercent": { "type": "number" },
+        "stageRemarks": { "type": "string" },
+        "likelyMonthOfClosure": { "type": "string" },
+        "supportRequired": { "type": "string" },
+        "platform": { "type": "string" },
+        "remarks": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["quotationNo", "customerName", "createdAt", "userId"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Potential business leads",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "emailId": { "type": "string" },
+        "leadOwner": { "type": "string" },
+        "opportunity": { "type": "string" },
+        "leadType": { "type": "string" },
+        "leadSource": { "type": "string" },
+        "remarks": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["customerName", "createdAt", "userId"]
+    },
+    "Visit": {
+      "title": "FOS Visit",
+      "description": "Record of a field visit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string" },
+        "location": { "type": "string" },
+        "dgSetDetails": {
+          "type": "object",
+          "properties": {
+            "kva": { "type": "string" },
+            "engineMake": { "type": "string" },
+            "esn": { "type": "string" }
+          }
+        },
+        "fosName": { "type": "string" },
+        "visitPurpose": { "type": "string" },
+        "visitType": { "type": "string" },
+        "status": { "type": "string" },
+        "remarks": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["customerName", "createdAt", "userId"]
+    },
+    "FosTarget": {
+      "title": "FOS Target",
+      "description": "Sales targets for FOS members",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fosName": { "type": "string" },
+        "month": { "type": "string" },
+        "year": { "type": "string" },
+        "targetVisits": { "type": "number" },
+        "achievedVisits": { "type": "number" },
+        "targetAmount": { "type": "number" },
+        "achievedAmount": { "type": "number" },
+        "remarks": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["fosName", "month", "year", "createdAt", "userId"]
+    }
+  },
+  "firestore": {
+    "/calls/{callId}": { "schema": "Call", "description": "Global collection of all calls" },
+    "/quotations/{quotationId}": { "schema": "Quotation", "description": "Global collection of all quotations" },
+    "/leads/{leadId}": { "schema": "Lead", "description": "Global collection of all leads" },
+    "/visits/{visitId}": { "schema": "Visit", "description": "Global collection of all visits" },
+    "/targets/{targetId}": { "schema": "FosTarget", "description": "Global collection of all FOS targets" }
+  }
+}

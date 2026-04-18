@@ -1,0 +1,125 @@
+export type CallType = 
+  | 'Warm Call' 
+  | 'Follow-up Call' 
+  | 'Call Back' 
+  | 'Qualification Call' 
+  | 'Proposal Discussion' 
+  | 'Negotiation' 
+  | 'Closing Call' 
+  | 'Relationship Call' 
+  | 'Support Call';
+
+export type CallStatus = 'Pending' | 'Completed' | 'In Progress' | 'Cancelled';
+
+export interface Call {
+  id: string;
+  customerName: string;
+  contactPerson: string;
+  phoneNumber: string;
+  email: string;
+  location: string;
+  dgSetDetails: {
+    kva: string;
+    engineMake: string;
+    esn: string;
+  };
+  partNo: string;
+  partDesc: string;
+  partCategory: string;
+  fosName: string;
+  followUpType: string;
+  callType: CallType;
+  status: CallStatus;
+  remarks: string;
+  createdAt: string;
+  followUpDate?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+}
+
+export interface Quotation {
+  id: string;
+  quotationNo: string;
+  customerName: string;
+  address: string;
+  territory: string;
+  branch: string;
+  leadOwner: string;
+  contactPerson: string;
+  mobileNumber: string;
+  emailId: string;
+  dgRatingKva: string;
+  engineMake: string;
+  esn: string;
+  engineModel: string;
+  partNo: string;
+  partDesc: string;
+  partCategory: string;
+  qty: number;
+  basicAmount: number;
+  status: string;
+  salesStage: string;
+  stagePercent: number;
+  stageRemarks: string;
+  likelyMonthOfClosure: string;
+  supportRequired: string;
+  platform: string;
+  remarks: string;
+  createdAt: string;
+}
+
+export interface Lead {
+  id: string;
+  customerName: string;
+  contactPerson: string;
+  mobileNumber: string;
+  emailId: string;
+  leadOwner: string;
+  opportunity: string;
+  leadType: string;
+  leadSource: string;
+  remarks: string;
+  createdAt: string;
+}
+
+export interface Visit {
+  id: string;
+  customerName: string;
+  contactPerson: string;
+  phoneNumber: string;
+  email: string;
+  location: string;
+  dgSetDetails: {
+    kva: string;
+    engineMake: string;
+    esn: string;
+  };
+  fosName: string;
+  visitPurpose: string;
+  visitType: string;
+  status: string;
+  remarks: string;
+  createdAt: string;
+}
+
+export interface FosTarget {
+  id: string;
+  fosName: string;
+  month: string;
+  year: string;
+  targetVisits: number;
+  achievedVisits: number;
+  targetAmount: number;
+  achievedAmount: number;
+  remarks: string;
+  createdAt: string;
+}
+
+export interface DashboardStats {
+  totalCalls: number;
+  todayFollowUps: number;
+  meetingAppointments: number;
+  totalQuotations: number;
+  totalLeads: number;
+  totalVisits: number;
+}
