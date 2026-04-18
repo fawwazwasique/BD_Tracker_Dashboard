@@ -22,10 +22,12 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { BulkUploadDialog } from './BulkUploadDialog';
 
 export function QuotationsTab() {
-  const { quotations, addQuotation, updateQuotation, deleteQuotation } = useStore();
+  const { quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation } = useStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const initialFormState = {
     quotationNo: '',
@@ -92,14 +94,14 @@ export function QuotationsTab() {
     }
   };
 
-  const handleBulkUpload = (data: any[]) => {
-    data.forEach(row => {
-      if (!row['Quotation No'] || !row['Customer Name']) return;
+  const handleBulkUpload = async (data: any[]) => {
+    const payloads = data.map(row => {
+      if (!row['Quotation No'] || !row['Customer Name']) return null;
       
       const stageName = row['Sales Stage'] || QUOTE_STAGES[0].name;
       const stage = QUOTE_STAGES.find(s => s.name === stageName) || QUOTE_STAGES[0];
 
-      addQuotation({
+      return {
         quotationNo: row['Quotation No'],
         customerName: row['Customer Name'],
         address: row['Address'] || '',
@@ -126,14 +128,21 @@ export function QuotationsTab() {
         supportRequired: row['Support Required'] || SUPPORT_REQUIRED[0],
         platform: row['Platform'] || '',
         remarks: row['Remarks'] || ''
-      });
-    });
+      };
+    }).filter(Boolean);
+
+    if (payloads.length > 0) {
+      await bulkAddQuotations(payloads as any);
+    }
   };
 
   const filtered = quotations.filter(q => 
     q.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     q.quotationNo.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -342,14 +351,14 @@ export function QuotationsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                     No quotations found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((q) => (
+                paginatedData.map((q) => (
                   <TableRow key={q.id} className="hover:bg-indigo-50/30 transition-colors group border-slate-50">
                     <TableCell className="font-bold text-slate-800">{q.quotationNo}</TableCell>
                     <TableCell>
@@ -380,6 +389,33 @@ export function QuotationsTab() {
             </TableBody>
           </Table>
         </div>
+        {totalPages > 1 && (
+          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <div className="text-xs font-bold text-slate-500">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} quotations
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="rounded-lg h-8 px-3 text-xs font-bold border-slate-200"
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="rounded-lg h-8 px-3 text-xs font-bold border-slate-200"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

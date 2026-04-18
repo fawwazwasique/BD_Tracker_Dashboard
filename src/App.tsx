@@ -20,7 +20,9 @@ import {
   FileText,
   Target,
   Briefcase,
-  Trash2
+  Trash2,
+  Database,
+  Settings
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,13 +69,14 @@ import { VisitsTab } from './components/VisitsTab';
 import { AnalyticsTab } from './components/AnalyticsTab';
 import { FosTargetsTab } from './components/FosTargetsTab';
 import { BulkUploadDialog } from './components/BulkUploadDialog';
+import { DataManagementTab } from './components/DataManagementTab';
 
 export default function App() {
   const { 
-    calls, addCall, updateCall, deleteCall, 
-    quotations, addQuotation, updateQuotation, deleteQuotation,
-    leads, addLead, updateLead, deleteLead,
-    visits, addVisit, updateVisit, deleteVisit,
+    calls, addCall, bulkAddCalls, updateCall, deleteCall, 
+    quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation,
+    leads, addLead, bulkAddLeads, updateLead, deleteLead,
+    visits, addVisit, bulkAddVisits, updateVisit, deleteVisit,
     stats, isLoaded 
   } = useStore();
 
@@ -82,6 +85,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingCallId, setEditingCallId] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
+  const [callsPage, setCallsPage] = useState(1);
+  const callsPerPage = 50;
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -212,11 +217,11 @@ export default function App() {
     resetForm();
   };
 
-  const handleBulkUploadCalls = (data: any[]) => {
-    data.forEach(row => {
-      if (!row['Customer Name']) return;
+  const handleBulkUploadCalls = async (data: any[]) => {
+    const payloads = data.map(row => {
+      if (!row['Customer Name']) return null;
       
-      addCall({
+      return {
         customerName: row['Customer Name'],
         contactPerson: row['Contact Person'] || '',
         phoneNumber: row['Phone Number'] || '',
@@ -238,14 +243,21 @@ export default function App() {
         followUpDate: row['Follow-up Date'] ? new Date(row['Follow-up Date']).toISOString() : undefined,
         appointmentDate: row['Appointment Date'] ? new Date(row['Appointment Date']).toISOString() : undefined,
         appointmentTime: row['Appointment Time'] || '',
-      });
-    });
+      };
+    }).filter(Boolean);
+
+    if (payloads.length > 0) {
+      await bulkAddCalls(payloads as any);
+    }
   };
 
   const filteredCalls = calls.filter(call => 
     call.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     call.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalCallsPages = Math.ceil(filteredCalls.length / callsPerPage);
+  const paginatedCalls = filteredCalls.slice((callsPage - 1) * callsPerPage, callsPage * callsPerPage);
 
   const getStatusIcon = (status: CallStatus) => {
     switch (status) {
@@ -443,6 +455,16 @@ export default function App() {
           >
             <CalendarIcon className="w-4 h-4" /> <span className="text-sm">Appointments</span>
           </Button>
+          <Button 
+            variant={activeTab === 'management' ? 'secondary' : 'ghost'} 
+            className={cn(
+              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              activeTab === 'management' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            )}
+            onClick={() => setActiveTab('management')}
+          >
+            <Database className="w-4 h-4" /> <span className="text-sm">Data Management</span>
+          </Button>
         </nav>
 
         <div className="mt-auto pt-6">
@@ -461,7 +483,10 @@ export default function App() {
               BD Tracker Dashboard
             </h2>
             <p className="text-indigo-600/80 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">
-              {activeTab === 'dashboard' ? 'Real-time business development insights.' : activeTab === 'calls' ? 'Manage your customer interactions efficiently.' : 'Your upcoming schedule at a glance.'}
+              {activeTab === 'dashboard' ? 'Real-time business development insights.' : 
+               activeTab === 'calls' ? 'Manage your customer interactions efficiently.' : 
+               activeTab === 'management' ? 'System database and bulk data controls.' :
+               'Your upcoming schedule at a glance.'}
             </p>
           </div>
 
@@ -1012,7 +1037,7 @@ export default function App() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCalls.map((call) => (
+                      {paginatedCalls.map((call) => (
                         <TableRow key={call.id} className="hover:bg-indigo-50/30 transition-colors group border-slate-50">
                           <TableCell>
                             <div className="font-bold text-slate-800">{call.customerName}</div>
@@ -1137,6 +1162,33 @@ export default function App() {
                       ))}
                     </TableBody>
                   </Table>
+                  {totalCallsPages > 1 && (
+                    <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                      <div className="text-xs font-bold text-slate-500">
+                        Showing {(callsPage - 1) * callsPerPage + 1} to {Math.min(callsPage * callsPerPage, filteredCalls.length)} of {filteredCalls.length} records
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={callsPage === 1}
+                          onClick={() => setCallsPage(prev => prev - 1)}
+                          className="rounded-lg h-8 px-3 text-xs font-bold border-slate-200"
+                        >
+                          Previous
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={callsPage === totalCallsPages}
+                          onClick={() => setCallsPage(prev => prev + 1)}
+                          className="rounded-lg h-8 px-3 text-xs font-bold border-slate-200"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   {filteredCalls.length === 0 && (
                     <div className="text-center py-20 text-slate-400">
                       <Search className="w-12 h-12 mx-auto mb-4 opacity-20 text-indigo-300" />
@@ -1262,6 +1314,12 @@ export default function App() {
               <FosTargetsTab />
             </motion.div>
           )}
+
+          {activeTab === 'management' && (
+            <motion.div key="management" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
+              <DataManagementTab />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -1339,6 +1397,15 @@ export default function App() {
           >
             <CalendarIcon className="w-5 h-5" />
             <span className="text-[10px]">Dates</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className={cn("flex-col h-auto py-2 gap-1 min-w-[64px] snap-start", activeTab === 'management' && "text-indigo-600")}
+            onClick={() => setActiveTab('management')}
+          >
+            <Database className="w-5 h-5" />
+            <span className="text-[10px]">Database</span>
           </Button>
         </div>
         <div className="text-[8px] text-center text-gray-400 pb-1 uppercase tracking-widest font-bold">

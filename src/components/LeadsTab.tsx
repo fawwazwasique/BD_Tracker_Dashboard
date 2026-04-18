@@ -19,10 +19,12 @@ import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { BulkUploadDialog } from './BulkUploadDialog';
 
 export function LeadsTab() {
-  const { leads, addLead, updateLead, deleteLead } = useStore();
+  const { leads, addLead, bulkAddLeads, updateLead, deleteLead } = useStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const initialFormState = {
     customerName: '',
@@ -60,11 +62,11 @@ export function LeadsTab() {
     resetForm();
   };
 
-  const handleBulkUpload = (data: any[]) => {
-    data.forEach(row => {
-      if (!row['Customer Name']) return;
+  const handleBulkUpload = async (data: any[]) => {
+    const payloads = data.map(row => {
+      if (!row['Customer Name']) return null;
 
-      addLead({
+      return {
         customerName: row['Customer Name'],
         contactPerson: row['Contact Person'] || '',
         mobileNumber: row['Mobile Number'] || '',
@@ -74,14 +76,21 @@ export function LeadsTab() {
         leadType: row['Lead Type'] || LEAD_TYPES[0],
         leadSource: row['Lead Source'] || LEAD_SOURCES[0],
         remarks: row['Remarks'] || ''
-      });
-    });
+      };
+    }).filter(Boolean);
+
+    if (payloads.length > 0) {
+      await bulkAddLeads(payloads as any);
+    }
   };
 
   const filtered = leads.filter(l => 
     l.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -213,14 +222,14 @@ export function LeadsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                     No leads found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((l) => (
+                paginatedData.map((l) => (
                   <TableRow key={l.id} className="hover:bg-indigo-50/30 transition-colors group border-slate-50">
                     <TableCell className="font-bold text-slate-800">{l.customerName}</TableCell>
                     <TableCell>
@@ -257,6 +266,33 @@ export function LeadsTab() {
             </TableBody>
           </Table>
         </div>
+        {totalPages > 1 && (
+          <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <div className="text-xs font-bold text-slate-500">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} leads
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="rounded-lg h-8 px-3 text-xs font-bold border-slate-200"
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="rounded-lg h-8 px-3 text-xs font-bold border-slate-200"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -9,7 +9,8 @@ import {
   deleteDoc, 
   doc, 
   query, 
-  orderBy
+  orderBy,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -52,6 +53,19 @@ export function useStore() {
     });
   };
 
+  const bulkAddCalls = async (data: Omit<Call, 'id' | 'createdAt'>[]) => {
+    const batchSize = 500;
+    for (let i = 0; i < data.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const chunk = data.slice(i, i + batchSize);
+      chunk.forEach(item => {
+        const newDocRef = doc(collection(db, 'calls'));
+        batch.set(newDocRef, { ...item, createdAt: new Date().toISOString() });
+      });
+      await batch.commit();
+    }
+  };
+
   const updateCall = async (id: string, updates: Partial<Call>) => {
     await updateDoc(doc(db, 'calls', id), updates);
   };
@@ -65,6 +79,19 @@ export function useStore() {
       ...quotation,
       createdAt: new Date().toISOString()
     });
+  };
+
+  const bulkAddQuotations = async (data: Omit<Quotation, 'id' | 'createdAt'>[]) => {
+    const batchSize = 500;
+    for (let i = 0; i < data.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const chunk = data.slice(i, i + batchSize);
+      chunk.forEach(item => {
+        const newDocRef = doc(collection(db, 'quotations'));
+        batch.set(newDocRef, { ...item, createdAt: new Date().toISOString() });
+      });
+      await batch.commit();
+    }
   };
 
   const updateQuotation = async (id: string, updates: Partial<Quotation>) => {
@@ -82,6 +109,19 @@ export function useStore() {
     });
   };
 
+  const bulkAddLeads = async (data: Omit<Lead, 'id' | 'createdAt'>[]) => {
+    const batchSize = 500;
+    for (let i = 0; i < data.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const chunk = data.slice(i, i + batchSize);
+      chunk.forEach(item => {
+        const newDocRef = doc(collection(db, 'leads'));
+        batch.set(newDocRef, { ...item, createdAt: new Date().toISOString() });
+      });
+      await batch.commit();
+    }
+  };
+
   const updateLead = async (id: string, updates: Partial<Lead>) => {
     await updateDoc(doc(db, 'leads', id), updates);
   };
@@ -95,6 +135,19 @@ export function useStore() {
       ...visit,
       createdAt: new Date().toISOString()
     });
+  };
+
+  const bulkAddVisits = async (data: Omit<Visit, 'id' | 'createdAt'>[]) => {
+    const batchSize = 500;
+    for (let i = 0; i < data.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const chunk = data.slice(i, i + batchSize);
+      chunk.forEach(item => {
+        const newDocRef = doc(collection(db, 'visits'));
+        batch.set(newDocRef, { ...item, createdAt: new Date().toISOString() });
+      });
+      await batch.commit();
+    }
   };
 
   const updateVisit = async (id: string, updates: Partial<Visit>) => {
@@ -120,6 +173,16 @@ export function useStore() {
     await deleteDoc(doc(db, 'targets', id));
   };
 
+  const clearAllData = async () => {
+    const allCalls = calls.map(c => deleteCall(c.id));
+    const allQuotes = quotations.map(q => deleteQuotation(q.id));
+    const allLeads = leads.map(l => deleteLead(l.id));
+    const allVisits = visits.map(v => deleteVisit(v.id));
+    const allTargets = targets.map(t => deleteTarget(t.id));
+    
+    await Promise.all([...allCalls, ...allQuotes, ...allLeads, ...allVisits, ...allTargets]);
+  };
+
   const stats = {
     totalCalls: calls.length,
     todayFollowUps: calls.filter(c => c.followUpDate && isSameDay(parseISO(c.followUpDate), new Date())).length,
@@ -130,11 +193,12 @@ export function useStore() {
   };
 
   return {
-    calls, addCall, updateCall, deleteCall,
-    quotations, addQuotation, updateQuotation, deleteQuotation,
-    leads, addLead, updateLead, deleteLead,
-    visits, addVisit, updateVisit, deleteVisit,
+    calls, addCall, bulkAddCalls, updateCall, deleteCall,
+    quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation,
+    leads, addLead, bulkAddLeads, updateLead, deleteLead,
+    visits, addVisit, bulkAddVisits, updateVisit, deleteVisit,
     targets, addTarget, updateTarget, deleteTarget,
+    clearAllData,
     stats,
     isLoaded
   };
