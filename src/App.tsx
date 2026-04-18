@@ -840,7 +840,7 @@ export default function App() {
               className="space-y-8"
             >
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <Card className="border-none shadow-lg shadow-slate-200/40 bg-white/80 backdrop-blur-xl hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
@@ -865,6 +865,19 @@ export default function App() {
                   <CardContent className="relative z-10">
                     <div className="text-5xl font-black text-slate-900 tracking-tight">{stats.totalQuotations}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">Active quotes in pipeline</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-none shadow-lg shadow-slate-200/40 bg-white/80 backdrop-blur-xl hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+                    <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Overall Quote Value</CardTitle>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center shadow-inner">
+                      <span className="text-lg font-bold text-emerald-600">₹</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative z-10">
+                    <div className="text-4xl font-black text-slate-900 tracking-tight leading-tight">₹{stats.totalQuotationValue.toLocaleString()}</div>
+                    <p className="text-xs font-medium text-slate-500 mt-2">Combined total basics</p>
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-lg shadow-slate-200/40 bg-white/80 backdrop-blur-xl hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden relative group">

@@ -188,6 +188,7 @@ export function useStore() {
     todayFollowUps: calls.filter(c => c.followUpDate && isSameDay(parseISO(c.followUpDate), new Date())).length,
     meetingAppointments: calls.filter(c => c.appointmentDate && parseISO(c.appointmentDate) >= new Date()).length,
     totalQuotations: quotations.length,
+    totalQuotationValue: quotations.reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0),
     totalLeads: leads.length,
     totalVisits: visits.length,
   };
