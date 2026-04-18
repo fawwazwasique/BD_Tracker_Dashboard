@@ -80,6 +80,43 @@ export default function App() {
     stats, user, isLoaded 
   } = useStore();
 
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [editingCallId, setEditingCallId] = useState<string | null>(null);
+  const [showSplash, setShowSplash] = useState(true);
+
+  const [formData, setFormData] = useState({
+    customerName: '',
+    contactPerson: '',
+    phoneNumber: '',
+    email: '',
+    location: '',
+    dgSetDetails: {
+      kva: '',
+      engineMake: 'Cummins',
+      esn: '',
+    },
+    partNo: '',
+    partDesc: '',
+    partCategory: '',
+    fosName: '',
+    followUpType: '',
+    callType: 'Warm Call' as CallType,
+    status: 'Pending' as CallStatus,
+    remarks: '',
+    followUpDate: undefined as Date | undefined,
+    appointmentDate: undefined as Date | undefined,
+    appointmentTime: '',
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3500); // Show splash for 3.5 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -152,43 +189,6 @@ export default function App() {
     (isBefore(parseISO(c.followUpDate), now) || isSameDay(parseISO(c.followUpDate), now)) &&
     c.status !== 'Completed'
   ).length;
-
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [editingCallId, setEditingCallId] = useState<string | null>(null);
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 3500); // Show splash for 3.5 seconds
-    return () => clearTimeout(timer);
-  }, []);
-
-  const [formData, setFormData] = useState({
-    customerName: '',
-    contactPerson: '',
-    phoneNumber: '',
-    email: '',
-    location: '',
-    dgSetDetails: {
-      kva: '',
-      engineMake: 'Cummins',
-      esn: '',
-    },
-    partNo: '',
-    partDesc: '',
-    partCategory: '',
-    fosName: '',
-    followUpType: '',
-    callType: 'Warm Call' as CallType,
-    status: 'Pending' as CallStatus,
-    remarks: '',
-    followUpDate: undefined as Date | undefined,
-    appointmentDate: undefined as Date | undefined,
-    appointmentTime: '',
-  });
 
   const resetForm = () => {
     setFormData({
