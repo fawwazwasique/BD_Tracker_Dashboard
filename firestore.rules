@@ -29,27 +29,27 @@ service cloud.firestore {
 
     // Section 1: Calls
     match /calls/{callId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Section 2: Quotations
     match /quotations/{quotationId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Section 3: Leads
     match /leads/{leadId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Section 4: Visits
     match /visits/{visitId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Section 5: Targets
     match /targets/{targetId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
   }
 }

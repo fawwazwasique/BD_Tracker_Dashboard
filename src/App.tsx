@@ -68,16 +68,13 @@ import { AnalyticsTab } from './components/AnalyticsTab';
 import { FosTargetsTab } from './components/FosTargetsTab';
 import { BulkUploadDialog } from './components/BulkUploadDialog';
 
-import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { auth } from './lib/firebase';
-
 export default function App() {
   const { 
     calls, addCall, updateCall, deleteCall, 
     quotations, addQuotation, updateQuotation, deleteQuotation,
     leads, addLead, updateLead, deleteLead,
     visits, addVisit, updateVisit, deleteVisit,
-    stats, user, isLoaded 
+    stats, isLoaded 
   } = useStore();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -117,17 +114,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed:", error);
-    }
-  };
-
-  const handleLogout = () => signOut(auth);
-
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -135,35 +121,6 @@ export default function App() {
           <div className="w-12 h-12 bg-indigo-600 rounded-2xl rotate-45" />
           <p className="font-bold text-indigo-600/50">Tracking Workspace...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_#EEF2FF_0%,_transparent_25%),_radial-gradient(circle_at_bottom_left,_#F5F3FF_0%,_transparent_25%)]">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-100/50 border border-indigo-50/50 p-10 text-center"
-        >
-          <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-200 rotate-12">
-            <Briefcase className="w-10 h-10 text-white -rotate-12" />
-          </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">BD Tracker</h1>
-          <p className="text-slate-500 font-medium mb-10 leading-relaxed">
-            Your centralized dashboard for business development and sales tracking.
-          </p>
-          <Button 
-            onClick={handleLogin}
-            className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3"
-          >
-            Sign in with Google
-          </Button>
-          <p className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            Powered by Fawwaz Creations
-          </p>
-        </motion.div>
       </div>
     );
   }
@@ -509,20 +466,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
-              <div className="hidden md:flex flex-col items-end">
-                <span className="text-xs font-bold text-slate-900">{user.displayName}</span>
-                <span className="text-[10px] font-medium text-slate-500">{user.email}</span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout}
-                className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg px-3"
-              >
-                Sign Out
-              </Button>
-            </div>
             <div className="flex items-center gap-3">
             {activeTab === 'calls' && (
               <BulkUploadDialog 

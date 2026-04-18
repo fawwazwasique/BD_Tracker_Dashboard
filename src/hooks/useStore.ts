@@ -9,12 +9,9 @@ import {
   deleteDoc, 
   doc, 
   query, 
-  orderBy,
-  serverTimestamp,
-  Timestamp
+  orderBy
 } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { db } from '../lib/firebase';
 
 export function useStore() {
   const [calls, setCalls] = useState<Call[]>([]);
@@ -22,28 +19,9 @@ export function useStore() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [targets, setTargets] = useState<FosTarget[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      if (!u) {
-        setCalls([]);
-        setQuotations([]);
-        setLeads([]);
-        setVisits([]);
-        setTargets([]);
-        setIsLoaded(true);
-      }
-    });
-
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
     const unsubscribers = [
       onSnapshot(query(collection(db, 'calls'), orderBy('createdAt', 'desc')), (snapshot) => {
         setCalls(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Call)));
@@ -64,14 +42,12 @@ export function useStore() {
 
     setIsLoaded(true);
     return () => unsubscribers.forEach(unsub => unsub());
-  }, [user]);
+  }, []);
 
   // Actions
   const addCall = async (call: Omit<Call, 'id' | 'createdAt'>) => {
-    if (!user) return;
     await addDoc(collection(db, 'calls'), {
       ...call,
-      userId: user.uid,
       createdAt: new Date().toISOString()
     });
   };
@@ -85,10 +61,8 @@ export function useStore() {
   };
 
   const addQuotation = async (quotation: Omit<Quotation, 'id' | 'createdAt'>) => {
-    if (!user) return;
     await addDoc(collection(db, 'quotations'), {
       ...quotation,
-      userId: user.uid,
       createdAt: new Date().toISOString()
     });
   };
@@ -102,10 +76,8 @@ export function useStore() {
   };
 
   const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>) => {
-    if (!user) return;
     await addDoc(collection(db, 'leads'), {
       ...lead,
-      userId: user.uid,
       createdAt: new Date().toISOString()
     });
   };
@@ -119,10 +91,8 @@ export function useStore() {
   };
 
   const addVisit = async (visit: Omit<Visit, 'id' | 'createdAt'>) => {
-    if (!user) return;
     await addDoc(collection(db, 'visits'), {
       ...visit,
-      userId: user.uid,
       createdAt: new Date().toISOString()
     });
   };
@@ -136,10 +106,8 @@ export function useStore() {
   };
 
   const addTarget = async (target: Omit<FosTarget, 'id' | 'createdAt'>) => {
-    if (!user) return;
     await addDoc(collection(db, 'targets'), {
       ...target,
-      userId: user.uid,
       createdAt: new Date().toISOString()
     });
   };
@@ -168,7 +136,6 @@ export function useStore() {
     visits, addVisit, updateVisit, deleteVisit,
     targets, addTarget, updateTarget, deleteTarget,
     stats,
-    user,
     isLoaded
   };
 }
