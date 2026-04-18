@@ -3,7 +3,7 @@ import { useStore } from '../hooks/useStore';
 import { Quotation } from '../types';
 import { 
   TERRITORIES, BRANCHES, FOS_NAMES, QUOTE_STATUSES, 
-  QUOTE_STAGES, SUPPORT_REQUIRED, MONTHS 
+  QUOTE_STAGES, SUPPORT_REQUIRED, MONTHS, PART_CATEGORIES 
 } from '../constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export function QuotationsTab() {
   const { quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation } = useStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -45,7 +46,7 @@ export function QuotationsTab() {
     engineModel: '',
     partNo: '',
     partDesc: '',
-    partCategory: '',
+    partCategory: PART_CATEGORIES[0],
     qty: 1,
     basicAmount: 0,
     status: QUOTE_STATUSES[0],
@@ -117,7 +118,7 @@ export function QuotationsTab() {
         engineModel: row['Engine Model'] || '',
         partNo: row['Part No'] || '',
         partDesc: row['Part Desc'] || '',
-        partCategory: row['Part Category'] || '',
+        partCategory: row['Part Category'] || PART_CATEGORIES[0],
         qty: parseInt(row['QTY']) || 1,
         basicAmount: parseFloat(row['BASIC Amount']) || 0,
         status: row['Status'] || QUOTE_STATUSES[0],
@@ -136,10 +137,12 @@ export function QuotationsTab() {
     }
   };
 
-  const filtered = quotations.filter(q => 
-    q.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.quotationNo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = quotations.filter(q => {
+    const matchesSearch = q.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         q.quotationNo.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || q.partCategory === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -147,14 +150,29 @@ export function QuotationsTab() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
-          <Input 
-            placeholder="Search quotations..." 
-            className="pl-10 bg-indigo-50/50 border-none focus-visible:ring-indigo-500/20 text-slate-700 placeholder:text-slate-400 rounded-xl"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+            <Input 
+              placeholder="Search quotations..." 
+              className="pl-10 bg-indigo-50/50 border-none focus-visible:ring-indigo-500/20 text-slate-700 placeholder:text-slate-400 rounded-xl w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="w-full md:w-48">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="bg-indigo-50/50 border-none focus:ring-indigo-500/20 rounded-xl text-slate-700">
+                <SelectValue placeholder="Category Filter" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                <SelectItem value="all" className="rounded-lg">All Categories</SelectItem>
+                {PART_CATEGORIES.map(cat => (
+                  <SelectItem key={cat} value={cat} className="rounded-lg">{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
@@ -270,7 +288,35 @@ export function QuotationsTab() {
                 </div>
                 <div className="space-y-2">
                   <Label>Part Category</Label>
-                  <Input value={formData.partCategory} onChange={e => setFormData({...formData, partCategory: e.target.value})} />
+                  <div className="flex flex-col gap-2">
+                    <Select 
+                      value={PART_CATEGORIES.includes(formData.partCategory) ? formData.partCategory : (formData.partCategory ? 'Other' : '')} 
+                      onValueChange={v => {
+                        if (v === 'Other') {
+                          setFormData({...formData, partCategory: ''});
+                        } else {
+                          setFormData({...formData, partCategory: v});
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="rounded-xl border-slate-200 shadow-sm"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200">
+                        {PART_CATEGORIES.filter(c => c !== 'Other').map(cat => (
+                          <SelectItem key={cat} value={cat} className="rounded-lg">{cat}</SelectItem>
+                        ))}
+                        <SelectItem value="Other" className="rounded-lg font-bold border-t border-slate-100 italic">Other (Manual Entry)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {(!PART_CATEGORIES.includes(formData.partCategory) || formData.partCategory === '') && (
+                      <Input 
+                        placeholder="Enter Part Category" 
+                        value={formData.partCategory} 
+                        onChange={e => setFormData({...formData, partCategory: e.target.value})} 
+                        className="rounded-xl border-slate-200"
+                        autoFocus
+                      />
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>QTY</Label>

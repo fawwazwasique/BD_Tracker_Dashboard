@@ -59,7 +59,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfWeek, endOfWeek, addWeeks, isWithinInterval, isBefore, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CALL_TYPES, CALL_STATUSES, ENGINE_MAKES, FOLLOW_UP_TYPES, FOS_NAMES } from './constants';
+import { CALL_TYPES, CALL_STATUSES, ENGINE_MAKES, FOLLOW_UP_TYPES, FOS_NAMES, PART_CATEGORIES } from './constants';
 import { CallType, CallStatus } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -86,6 +86,7 @@ export default function App() {
   const [editingCallId, setEditingCallId] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   const [callsPage, setCallsPage] = useState(1);
+  const [dashboardCategoryFilter, setDashboardCategoryFilter] = useState<string>('all');
   const callsPerPage = 50;
 
   const [formData, setFormData] = useState({
@@ -101,7 +102,7 @@ export default function App() {
     },
     partNo: '',
     partDesc: '',
-    partCategory: '',
+    partCategory: PART_CATEGORIES[0],
     fosName: '',
     followUpType: '',
     callType: 'Warm Call' as CallType,
@@ -162,7 +163,7 @@ export default function App() {
       dgSetDetails: { kva: '', engineMake: 'Cummins', esn: '' },
       partNo: '',
       partDesc: '',
-      partCategory: '',
+      partCategory: PART_CATEGORIES[0],
       fosName: '',
       followUpType: '',
       callType: 'Warm Call',
@@ -234,7 +235,7 @@ export default function App() {
         },
         partNo: row['Part No'] || '',
         partDesc: row['Part Desc'] || '',
-        partCategory: row['Part Category'] || '',
+        partCategory: row['Part Category'] || PART_CATEGORIES[0],
         fosName: row['FOS Name'] || '',
         followUpType: row['Follow up Type'] || '',
         callType: (row['Call Type'] as CallType) || 'Warm Call',
@@ -251,10 +252,32 @@ export default function App() {
     }
   };
 
-  const filteredCalls = calls.filter(call => 
-    call.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCalls = calls.filter(call => {
+    const matchesSearch = call.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         call.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = activeTab === 'dashboard' 
+      ? (dashboardCategoryFilter === 'all' || call.partCategory === dashboardCategoryFilter)
+      : true;
+    return matchesSearch && matchesCategory;
+  });
+
+  const dashboardStats = {
+    totalCalls: calls.filter(c => dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter).length,
+    todayFollowUps: calls.filter(c => 
+      (dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter) &&
+      c.followUpDate && isSameDay(parseISO(c.followUpDate), new Date())
+    ).length,
+    meetingAppointments: calls.filter(c => 
+      (dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter) &&
+      c.appointmentDate && parseISO(c.appointmentDate) >= new Date()
+    ).length,
+    totalQuotations: quotations.filter(q => dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter).length,
+    totalQuotationValue: quotations
+      .filter(q => dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter)
+      .reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0),
+    totalLeads: leads.length, // No partCategory in leads
+    totalVisits: visits.length, // No partCategory in visits
+  };
 
   const totalCallsPages = Math.ceil(filteredCalls.length / callsPerPage);
   const paginatedCalls = filteredCalls.slice((callsPage - 1) * callsPerPage, callsPage * callsPerPage);
@@ -663,13 +686,36 @@ export default function App() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="partCategory" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Part Category</Label>
-                      <Input 
-                        id="partCategory" 
-                        placeholder="e.g. Consumables" 
-                        className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500/20 rounded-xl"
-                        value={formData.partCategory}
-                        onChange={e => setFormData({...formData, partCategory: e.target.value})}
-                      />
+                      <div className="flex flex-col gap-2">
+                        <Select 
+                          value={PART_CATEGORIES.includes(formData.partCategory) ? formData.partCategory : (formData.partCategory ? 'Other' : '')}
+                          onValueChange={val => {
+                            if (val === 'Other') {
+                              setFormData({...formData, partCategory: ''});
+                            } else {
+                              setFormData({...formData, partCategory: val});
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="bg-slate-50 border-slate-200 focus:ring-indigo-500/20 rounded-xl">
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                            {PART_CATEGORIES.filter(c => c !== 'Other').map(cat => (
+                              <SelectItem key={cat} value={cat} className="rounded-lg">{cat}</SelectItem>
+                            ))}
+                            <SelectItem value="Other" className="rounded-lg font-bold border-t border-slate-100 italic">Other (Manual Entry)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {(!PART_CATEGORIES.includes(formData.partCategory) || formData.partCategory === '') && (
+                          <Input 
+                            placeholder="Enter Part Category" 
+                            className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500/20 rounded-xl"
+                            value={formData.partCategory}
+                            onChange={e => setFormData({...formData, partCategory: e.target.value})}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -839,6 +885,27 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-8"
             >
+              {/* Dashboard Filters */}
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-indigo-600 p-4 rounded-2xl shadow-xl shadow-indigo-200/50">
+                <div className="flex items-center gap-2 text-white">
+                  <Filter className="w-5 h-5" />
+                  <span className="font-bold text-sm tracking-wide uppercase">Dashboard Filter</span>
+                </div>
+                <div className="w-full md:w-64">
+                  <Select value={dashboardCategoryFilter} onValueChange={setDashboardCategoryFilter}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white focus:ring-white/20 rounded-xl hover:bg-white/20 transition-all font-bold">
+                      <SelectValue placeholder="Part Category Filter" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      <SelectItem value="all" className="rounded-lg">All Categories</SelectItem>
+                      {PART_CATEGORIES.filter(c => c !== 'Other').map(cat => (
+                        <SelectItem key={cat} value={cat} className="rounded-lg">{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <Card className="border-none shadow-lg shadow-slate-200/40 bg-white/80 backdrop-blur-xl hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden relative group">
@@ -850,7 +917,7 @@ export default function App() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{stats.totalCalls}</div>
+                    <div className="text-5xl font-black text-slate-900 tracking-tight">{dashboardStats.totalCalls}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">Lifetime total interactions</p>
                   </CardContent>
                 </Card>
@@ -863,7 +930,7 @@ export default function App() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{stats.totalQuotations}</div>
+                    <div className="text-5xl font-black text-slate-900 tracking-tight">{dashboardStats.totalQuotations}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">Active quotes in pipeline</p>
                   </CardContent>
                 </Card>
@@ -876,7 +943,7 @@ export default function App() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-4xl font-black text-slate-900 tracking-tight leading-tight">₹{stats.totalQuotationValue.toLocaleString()}</div>
+                    <div className="text-4xl font-black text-slate-900 tracking-tight leading-tight">₹{dashboardStats.totalQuotationValue.toLocaleString()}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">Combined total basics</p>
                   </CardContent>
                 </Card>
@@ -889,7 +956,7 @@ export default function App() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{stats.totalLeads}</div>
+                    <div className="text-5xl font-black text-slate-900 tracking-tight">{dashboardStats.totalLeads}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">New opportunities</p>
                   </CardContent>
                 </Card>
@@ -902,7 +969,7 @@ export default function App() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{stats.totalVisits}</div>
+                    <div className="text-5xl font-black text-slate-900 tracking-tight">{dashboardStats.totalVisits}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">Field operations</p>
                   </CardContent>
                 </Card>
@@ -915,7 +982,7 @@ export default function App() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{stats.todayFollowUps}</div>
+                    <div className="text-5xl font-black text-slate-900 tracking-tight">{dashboardStats.todayFollowUps}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">Scheduled for today</p>
                   </CardContent>
                 </Card>
@@ -928,7 +995,7 @@ export default function App() {
                     </div>
                   </CardHeader>
                   <CardContent className="relative z-10">
-                    <div className="text-5xl font-black text-slate-900 tracking-tight">{stats.meetingAppointments}</div>
+                    <div className="text-5xl font-black text-slate-900 tracking-tight">{dashboardStats.meetingAppointments}</div>
                     <p className="text-xs font-medium text-slate-500 mt-2">Upcoming site visits/meetings</p>
                   </CardContent>
                 </Card>
@@ -943,7 +1010,7 @@ export default function App() {
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-6">
-                      {calls.slice(0, 5).map((call) => (
+                      {filteredCalls.slice(0, 5).map((call) => (
                         <div key={call.id} className="flex items-start gap-4 group p-3 rounded-xl hover:bg-indigo-50/50 transition-colors border border-transparent hover:border-indigo-100">
                           <div className="mt-1 p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
                             {getStatusIcon(call.status)}
@@ -976,7 +1043,7 @@ export default function App() {
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      {calls
+                      {filteredCalls
                         .filter(c => c.appointmentDate && parseISO(c.appointmentDate) >= new Date())
                         .sort((a, b) => parseISO(a.appointmentDate!).getTime() - parseISO(b.appointmentDate!).getTime())
                         .slice(0, 5)
