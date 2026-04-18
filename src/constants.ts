@@ -30,24 +30,32 @@ export const ENGINE_MAKES = [
 ];
 
 export const TERRITORIES = [
-  'BANGALORE',
-  'MANGALORE',
-  'NORTH KARNATAKA',
-  'MYSORE'
+  'Bangalore',
+  'Mangalore',
+  'Mysore',
+  'North Karnataka'
 ];
 
 export const BRANCHES = [
-  'Attibele',
-  'Garudacharpalya',
+  'Byappanhalli',
+  'Peenya',
+  'JC Road',
+  'Tumkur',
   'Mangalore',
   'Ankola',
   'Chitradurga',
-  'Mysore',
+  'Shimoga',
+  'Belagavi',
+  'Kalaburagi',
   'Hospet',
   'Hubli',
-  'Kalaburgi',
-  'Tumkur',
-  'Shivamogga'
+  'Vijayapur',
+  'Hosur',
+  'Mysore',
+  'Attibele',
+  'Ballari',
+  'Hassan',
+  'Bangalore'
 ];
 
 export const FOS_NAMES = [
