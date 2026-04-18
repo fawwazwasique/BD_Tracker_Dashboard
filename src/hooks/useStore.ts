@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Call, Quotation, Lead, Visit, FosTarget } from '../types';
 import { isSameDay, parseISO } from 'date-fns';
+import { 
+  collection, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  orderBy,
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 export function useStore() {
   const [calls, setCalls] = useState<Call[]>([]);
@@ -8,102 +22,134 @@ export function useStore() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [targets, setTargets] = useState<FosTarget[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const savedCalls = localStorage.getItem('calltrack_calls');
-    const savedQuotations = localStorage.getItem('calltrack_quotations');
-    const savedLeads = localStorage.getItem('calltrack_leads');
-    const savedVisits = localStorage.getItem('calltrack_visits');
-    const savedTargets = localStorage.getItem('calltrack_targets');
+    const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (!u) {
+        setCalls([]);
+        setQuotations([]);
+        setLeads([]);
+        setVisits([]);
+        setTargets([]);
+        setIsLoaded(true);
+      }
+    });
 
-    if (savedCalls) setCalls(JSON.parse(savedCalls));
-    if (savedQuotations) setQuotations(JSON.parse(savedQuotations));
-    if (savedLeads) setLeads(JSON.parse(savedLeads));
-    if (savedVisits) setVisits(JSON.parse(savedVisits));
-    if (savedTargets) setTargets(JSON.parse(savedTargets));
-
-    setIsLoaded(true);
+    return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('calltrack_calls', JSON.stringify(calls));
-      localStorage.setItem('calltrack_quotations', JSON.stringify(quotations));
-      localStorage.setItem('calltrack_leads', JSON.stringify(leads));
-      localStorage.setItem('calltrack_visits', JSON.stringify(visits));
-      localStorage.setItem('calltrack_targets', JSON.stringify(targets));
-    }
-  }, [calls, quotations, leads, visits, targets, isLoaded]);
+    if (!user) return;
 
-  // Calls
-  const addCall = (call: Omit<Call, 'id' | 'createdAt'>) => {
-    const id = typeof crypto.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 11);
-    setCalls(prev => [{ ...call, id, createdAt: new Date().toISOString() }, ...prev]);
-  };
-  const updateCall = (id: string, updates: Partial<Call>) => {
-    setCalls(prev => prev.map(c => (c.id === id ? { ...c, ...updates } : c)));
-  };
-  const deleteCall = (id: string) => {
-    setCalls(prev => prev.filter(c => c.id !== id));
-  };
+    const unsubscribers = [
+      onSnapshot(query(collection(db, 'calls'), orderBy('createdAt', 'desc')), (snapshot) => {
+        setCalls(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Call)));
+      }),
+      onSnapshot(query(collection(db, 'quotations'), orderBy('createdAt', 'desc')), (snapshot) => {
+        setQuotations(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Quotation)));
+      }),
+      onSnapshot(query(collection(db, 'leads'), orderBy('createdAt', 'desc')), (snapshot) => {
+        setLeads(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Lead)));
+      }),
+      onSnapshot(query(collection(db, 'visits'), orderBy('createdAt', 'desc')), (snapshot) => {
+        setVisits(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Visit)));
+      }),
+      onSnapshot(query(collection(db, 'targets'), orderBy('createdAt', 'desc')), (snapshot) => {
+        setTargets(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as FosTarget)));
+      })
+    ];
 
-  // Quotations
-  const addQuotation = (quotation: Omit<Quotation, 'id' | 'createdAt'>) => {
-    const id = typeof crypto.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 11);
-    setQuotations(prev => [{ ...quotation, id, createdAt: new Date().toISOString() }, ...prev]);
-  };
-  const updateQuotation = (id: string, updates: Partial<Quotation>) => {
-    setQuotations(prev => prev.map(q => (q.id === id ? { ...q, ...updates } : q)));
-  };
-  const deleteQuotation = (id: string) => {
-    setQuotations(prev => prev.filter(q => q.id !== id));
+    setIsLoaded(true);
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [user]);
+
+  // Actions
+  const addCall = async (call: Omit<Call, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    await addDoc(collection(db, 'calls'), {
+      ...call,
+      userId: user.uid,
+      createdAt: new Date().toISOString()
+    });
   };
 
-  // Leads
-  const addLead = (lead: Omit<Lead, 'id' | 'createdAt'>) => {
-    const id = typeof crypto.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 11);
-    setLeads(prev => [{ ...lead, id, createdAt: new Date().toISOString() }, ...prev]);
-  };
-  const updateLead = (id: string, updates: Partial<Lead>) => {
-    setLeads(prev => prev.map(l => (l.id === id ? { ...l, ...updates } : l)));
-  };
-  const deleteLead = (id: string) => {
-    setLeads(prev => prev.filter(l => l.id !== id));
+  const updateCall = async (id: string, updates: Partial<Call>) => {
+    await updateDoc(doc(db, 'calls', id), updates);
   };
 
-  // Visits
-  const addVisit = (visit: Omit<Visit, 'id' | 'createdAt'>) => {
-    const id = typeof crypto.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 11);
-    setVisits(prev => [{ ...visit, id, createdAt: new Date().toISOString() }, ...prev]);
-  };
-  const updateVisit = (id: string, updates: Partial<Visit>) => {
-    setVisits(prev => prev.map(v => (v.id === id ? { ...v, ...updates } : v)));
-  };
-  const deleteVisit = (id: string) => {
-    setVisits(prev => prev.filter(v => v.id !== id));
+  const deleteCall = async (id: string) => {
+    await deleteDoc(doc(db, 'calls', id));
   };
 
-  // Targets
-  const addTarget = (target: Omit<FosTarget, 'id' | 'createdAt'>) => {
-    const id = typeof crypto.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 11);
-    setTargets(prev => [{ ...target, id, createdAt: new Date().toISOString() }, ...prev]);
+  const addQuotation = async (quotation: Omit<Quotation, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    await addDoc(collection(db, 'quotations'), {
+      ...quotation,
+      userId: user.uid,
+      createdAt: new Date().toISOString()
+    });
   };
-  const updateTarget = (id: string, updates: Partial<FosTarget>) => {
-    setTargets(prev => prev.map(t => (t.id === id ? { ...t, ...updates } : t)));
+
+  const updateQuotation = async (id: string, updates: Partial<Quotation>) => {
+    await updateDoc(doc(db, 'quotations', id), updates);
   };
-  const deleteTarget = (id: string) => {
-    setTargets(prev => prev.filter(t => t.id !== id));
+
+  const deleteQuotation = async (id: string) => {
+    await deleteDoc(doc(db, 'quotations', id));
+  };
+
+  const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    await addDoc(collection(db, 'leads'), {
+      ...lead,
+      userId: user.uid,
+      createdAt: new Date().toISOString()
+    });
+  };
+
+  const updateLead = async (id: string, updates: Partial<Lead>) => {
+    await updateDoc(doc(db, 'leads', id), updates);
+  };
+
+  const deleteLead = async (id: string) => {
+    await deleteDoc(doc(db, 'leads', id));
+  };
+
+  const addVisit = async (visit: Omit<Visit, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    await addDoc(collection(db, 'visits'), {
+      ...visit,
+      userId: user.uid,
+      createdAt: new Date().toISOString()
+    });
+  };
+
+  const updateVisit = async (id: string, updates: Partial<Visit>) => {
+    await updateDoc(doc(db, 'visits', id), updates);
+  };
+
+  const deleteVisit = async (id: string) => {
+    await deleteDoc(doc(db, 'visits', id));
+  };
+
+  const addTarget = async (target: Omit<FosTarget, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    await addDoc(collection(db, 'targets'), {
+      ...target,
+      userId: user.uid,
+      createdAt: new Date().toISOString()
+    });
+  };
+
+  const updateTarget = async (id: string, updates: Partial<FosTarget>) => {
+    await updateDoc(doc(db, 'targets', id), updates);
+  };
+
+  const deleteTarget = async (id: string) => {
+    await deleteDoc(doc(db, 'targets', id));
   };
 
   const stats = {
@@ -122,6 +168,7 @@ export function useStore() {
     visits, addVisit, updateVisit, deleteVisit,
     targets, addTarget, updateTarget, deleteTarget,
     stats,
+    user,
     isLoaded
   };
 }

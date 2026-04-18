@@ -29,94 +29,27 @@ service cloud.firestore {
 
     // Section 1: Calls
     match /calls/{callId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() 
-        && isValidId(callId)
-        && incoming().userId == request.auth.uid
-        && incoming().customerName is string && incoming().customerName.size() <= 200
-        && incoming().createdAt is string;
-      allow update: if isOwner(existing()) 
-        && incoming().userId == request.auth.uid
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'customerName', 'contactPerson', 'phoneNumber', 'email', 'location', 
-          'dgSetDetails', 'partNo', 'partDesc', 'partCategory', 'fosName', 
-          'followUpType', 'callType', 'status', 'remarks', 'followUpDate', 
-          'appointmentDate', 'appointmentTime'
-        ]);
-      allow delete: if isOwner(existing());
+      allow read, write: if isSignedIn();
     }
 
     // Section 2: Quotations
     match /quotations/{quotationId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() 
-        && isValidId(quotationId)
-        && incoming().userId == request.auth.uid
-        && incoming().quotationNo is string
-        && incoming().customerName is string
-        && incoming().createdAt is string;
-      allow update: if isOwner(existing()) 
-        && incoming().userId == request.auth.uid
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'quotationNo', 'customerName', 'address', 'territory', 'branch', 
-          'leadOwner', 'contactPerson', 'mobileNumber', 'emailId', 
-          'dgRatingKva', 'engineMake', 'esn', 'engineModel', 
-          'partNo', 'partDesc', 'partCategory', 'qty', 'basicAmount', 
-          'status', 'salesStage', 'stagePercent', 'stageRemarks', 
-          'likelyMonthOfClosure', 'supportRequired', 'platform', 'remarks'
-        ]);
-      allow delete: if isOwner(existing());
+      allow read, write: if isSignedIn();
     }
 
     // Section 3: Leads
     match /leads/{leadId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() 
-        && isValidId(leadId)
-        && incoming().userId == request.auth.uid
-        && incoming().customerName is string
-        && incoming().createdAt is string;
-      allow update: if isOwner(existing()) 
-        && incoming().userId == request.auth.uid
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'customerName', 'contactPerson', 'mobileNumber', 'emailId', 
-          'leadOwner', 'opportunity', 'leadType', 'leadSource', 'remarks'
-        ]);
-      allow delete: if isOwner(existing());
+      allow read, write: if isSignedIn();
     }
 
     // Section 4: Visits
     match /visits/{visitId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() 
-        && isValidId(visitId)
-        && incoming().userId == request.auth.uid
-        && incoming().customerName is string
-        && incoming().createdAt is string;
-      allow update: if isOwner(existing()) 
-        && incoming().userId == request.auth.uid
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'customerName', 'contactPerson', 'phoneNumber', 'email', 'location', 
-          'dgSetDetails', 'fosName', 'visitPurpose', 'visitType', 'status', 'remarks'
-        ]);
-      allow delete: if isOwner(existing());
+      allow read, write: if isSignedIn();
     }
 
     // Section 5: Targets
     match /targets/{targetId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() 
-        && isValidId(targetId)
-        && incoming().userId == request.auth.uid
-        && incoming().fosName is string
-        && incoming().createdAt is string;
-      allow update: if isOwner(existing()) 
-        && incoming().userId == request.auth.uid
-        && incoming().diff(existing()).affectedKeys().hasOnly([
-          'fosName', 'month', 'year', 'targetVisits', 'achievedVisits', 
-          'targetAmount', 'achievedAmount', 'remarks'
-        ]);
-      allow delete: if isOwner(existing());
+      allow read, write: if isSignedIn();
     }
   }
 }
