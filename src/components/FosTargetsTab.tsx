@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, Target } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Target, Download } from 'lucide-react';
 import { BulkUploadDialog } from './BulkUploadDialog';
 import { FOS_NAMES, MONTHS } from '../constants';
+import { exportToCSV } from '../lib/csvExport';
 
 const YEARS = ['2024', '2025', '2026', '2027'];
 
@@ -92,6 +93,12 @@ export function FosTargetsTab() {
     t.year.includes(searchTerm)
   );
 
+  const handleExport = () => {
+    exportToCSV(filtered, "FOS_Targets", [
+      "fosName", "month", "year", "targetVisits", "achievedVisits", "targetAmount", "achievedAmount", "remarks"
+    ]);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100">
@@ -106,6 +113,13 @@ export function FosTargetsTab() {
         </div>
         
         <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
           <BulkUploadDialog 
             title="FOS Targets" 
             templateHeaders={[

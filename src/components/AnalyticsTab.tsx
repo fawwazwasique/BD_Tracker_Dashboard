@@ -6,13 +6,22 @@ import {
   ComposedChart, Line
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { FOS_NAMES, LEAD_SOURCES, MONTHS } from '../constants';
+import { exportToCSV } from '../lib/csvExport';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#3b82f6', '#06b6d4', '#ec4899', '#f59e0b', '#10b981'];
 
 export function AnalyticsTab() {
   const { quotations, leads, visits } = useStore();
+
+  const handleExportAll = () => {
+    if (quotations.length > 0) exportToCSV(quotations, "All_Quotations", ["quotationNo", "customerName", "basicAmount", "status", "salesStage", "leadOwner", "createdAt"]);
+    if (leads.length > 0) exportToCSV(leads, "All_Leads", ["customerName", "contactPerson", "mobileNumber", "leadType", "leadSource", "createdAt"]);
+    if (visits.length > 0) exportToCSV(visits, "All_Visits", ["customerName", "contactPerson", "fosName", "visitPurpose", "status", "createdAt"]);
+  };
 
   // 1. Quotation Status Breakdown
   const statusData = [
@@ -62,6 +71,14 @@ export function AnalyticsTab() {
 
   return (
     <div className="space-y-8 pb-12">
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleExportAll}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 rounded-xl shadow-lg shadow-indigo-500/20 font-bold"
+        >
+          <Download className="w-4 h-4" /> Export Analytics Data
+        </Button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Quotation Status Breakdown */}
         <Card className="border-none shadow-lg shadow-slate-200/40 bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden">

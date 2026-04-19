@@ -15,8 +15,9 @@ import {
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Download } from 'lucide-react';
 import { BulkUploadDialog } from './BulkUploadDialog';
+import { exportToCSV } from '../lib/csvExport';
 
 export function VisitsTab() {
   const { visits, addVisit, bulkAddVisits, updateVisit, deleteVisit } = useStore();
@@ -100,6 +101,20 @@ export function VisitsTab() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const handleExport = () => {
+    // Flatten visit data for CSV
+    const exportData = filtered.map(v => ({
+      ...v,
+      kva: v.dgSetDetails.kva,
+      engineMake: v.dgSetDetails.engineMake,
+      esn: v.dgSetDetails.esn
+    }));
+
+    exportToCSV(exportData, "Visits", [
+      "customerName", "contactPerson", "phoneNumber", "email", "location", "kva", "engineMake", "esn", "fosName", "visitPurpose", "visitType", "status", "remarks", "createdAt"
+    ]);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100">
@@ -114,6 +129,13 @@ export function VisitsTab() {
         </div>
         
         <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
           <BulkUploadDialog 
             title="Visits" 
             templateHeaders={[

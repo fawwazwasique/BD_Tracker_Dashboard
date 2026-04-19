@@ -18,8 +18,9 @@ import {
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Download } from 'lucide-react';
 import { BulkUploadDialog } from './BulkUploadDialog';
+import { exportToCSV } from '../lib/csvExport';
 
 export function QuotationsTab() {
   const { quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation } = useStore();
@@ -151,6 +152,12 @@ export function QuotationsTab() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const handleExport = () => {
+    exportToCSV(filtered, "Quotations", [
+      "quotationNo", "quotationDate", "customerName", "address", "territory", "branch", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esn", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "supportRequired", "platform", "remarks", "createdAt"
+    ]);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100">
@@ -193,6 +200,13 @@ export function QuotationsTab() {
         </div>
         
         <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
           <BulkUploadDialog 
             title="Quotations" 
             templateHeaders={[

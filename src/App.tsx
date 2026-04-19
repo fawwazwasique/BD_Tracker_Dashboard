@@ -70,6 +70,8 @@ import { AnalyticsTab } from './components/AnalyticsTab';
 import { FosTargetsTab } from './components/FosTargetsTab';
 import { BulkUploadDialog } from './components/BulkUploadDialog';
 import { DataManagementTab } from './components/DataManagementTab';
+import { exportToCSV } from './lib/csvExport';
+import { Download } from 'lucide-react';
 
 export default function App() {
   const { 
@@ -88,6 +90,32 @@ export default function App() {
   const [callsPage, setCallsPage] = useState(1);
   const [dashboardCategoryFilter, setDashboardCategoryFilter] = useState<string>('all');
   const [dashboardSupportFilter, setDashboardSupportFilter] = useState<string>('all');
+
+  const handleExportDashboardData = () => {
+    const filteredDashboardCalls = calls.filter(c => dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter);
+    const filteredDashboardQuotes = quotations.filter(q => 
+      (dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter) &&
+      (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter)
+    );
+
+    if (filteredDashboardCalls.length > 0) {
+      exportToCSV(filteredDashboardCalls, "Dashboard_Calls", [
+        "customerName", "contactPerson", "phoneNumber", "email", "location", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt", "followUpDate", "appointmentDate", "appointmentTime"
+      ]);
+    }
+    if (filteredDashboardQuotes.length > 0) {
+      exportToCSV(filteredDashboardQuotes, "Dashboard_Quotations", [
+        "quotationNo", "quotationDate", "customerName", "address", "territory", "branch", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esn", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "supportRequired", "platform", "remarks", "createdAt"
+      ]);
+    }
+  };
+
+  const handleExportCallsData = () => {
+    exportToCSV(filteredCalls, "Calls_Management", [
+      "customerName", "contactPerson", "phoneNumber", "email", "location", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt"
+    ]);
+  };
+
   const callsPerPage = 50;
 
   const [formData, setFormData] = useState({
@@ -899,6 +927,13 @@ export default function App() {
                   <span className="font-bold text-sm tracking-wide uppercase">Dashboard Filter</span>
                 </div>
                 <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleExportDashboardData}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl transition-all font-bold gap-2"
+                  >
+                    <Download className="w-4 h-4" /> Export Data
+                  </Button>
                   <div className="w-full md:w-64">
                     <Select value={dashboardCategoryFilter} onValueChange={setDashboardCategoryFilter}>
                       <SelectTrigger className="bg-white/10 border-white/20 text-white focus:ring-white/20 rounded-xl hover:bg-white/20 transition-all font-bold">
@@ -1118,8 +1153,12 @@ export default function App() {
                   <Button variant="outline" className="gap-2 flex-1 md:flex-none rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600">
                     <Filter className="w-4 h-4" /> Filter
                   </Button>
-                  <Button variant="outline" className="gap-2 flex-1 md:flex-none rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600">
-                    Export CSV
+                  <Button 
+                    variant="outline" 
+                    onClick={handleExportCallsData}
+                    className="gap-2 flex-1 md:flex-none rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600"
+                  >
+                    <Download className="w-4 h-4" /> Export CSV
                   </Button>
                 </div>
               </div>

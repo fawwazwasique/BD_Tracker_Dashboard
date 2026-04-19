@@ -15,8 +15,9 @@ import {
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Download } from 'lucide-react';
 import { BulkUploadDialog } from './BulkUploadDialog';
+import { exportToCSV } from '../lib/csvExport';
 
 export function LeadsTab() {
   const { leads, addLead, bulkAddLeads, updateLead, deleteLead } = useStore();
@@ -92,6 +93,12 @@ export function LeadsTab() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const handleExport = () => {
+    exportToCSV(filtered, "Leads", [
+      "customerName", "contactPerson", "mobileNumber", "emailId", "leadOwner", "opportunity", "leadType", "leadSource", "remarks", "createdAt"
+    ]);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100">
@@ -106,6 +113,13 @@ export function LeadsTab() {
         </div>
         
         <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
           <BulkUploadDialog 
             title="Leads" 
             templateHeaders={[
