@@ -183,6 +183,18 @@ export function useStore() {
     await Promise.all([...allCalls, ...allQuotes, ...allLeads, ...allVisits, ...allTargets]);
   };
 
+  const deleteDataByCategory = async (category: string) => {
+    if (category === 'all') {
+      await clearAllData();
+      return;
+    }
+
+    const callsToDelete = calls.filter(c => c.partCategory === category).map(c => deleteCall(c.id));
+    const quotesToDelete = quotations.filter(q => q.partCategory === category).map(q => deleteQuotation(q.id));
+    
+    await Promise.all([...callsToDelete, ...quotesToDelete]);
+  };
+
   const stats = {
     totalCalls: calls.length,
     todayFollowUps: calls.filter(c => c.followUpDate && isSameDay(parseISO(c.followUpDate), new Date())).length,
@@ -200,6 +212,7 @@ export function useStore() {
     visits, addVisit, bulkAddVisits, updateVisit, deleteVisit,
     targets, addTarget, updateTarget, deleteTarget,
     clearAllData,
+    deleteDataByCategory,
     stats,
     isLoaded
   };

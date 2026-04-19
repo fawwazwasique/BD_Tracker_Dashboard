@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useStore } from '../hooks/useStore';
+import { PART_CATEGORIES } from '../constants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2, AlertTriangle, ShieldCheck, Filter } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -14,14 +17,15 @@ import {
 } from '@/components/ui/dialog';
 
 export function DataManagementTab() {
-  const { clearAllData, stats } = useStore();
+  const { clearAllData, deleteDataByCategory, stats } = useStore();
   const [isDeleting, setIsDeleting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const handleDeleteAll = async () => {
+  const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await clearAllData();
+      await deleteDataByCategory(selectedCategory);
       setModalOpen(false);
     } catch (error) {
       console.error("Failed to delete data:", error);
@@ -47,13 +51,36 @@ export function DataManagementTab() {
                 <AlertTriangle className="w-5 h-5 text-rose-600" />
                 <h3 className="font-black text-rose-900 uppercase text-xs tracking-widest">Danger Zone</h3>
               </div>
+              
+              <div className="space-y-3 p-4 bg-white/50 rounded-2xl border border-rose-100/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <Filter className="w-3.5 h-3.5 text-rose-500" />
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-rose-500">Filter Data to Delete</Label>
+                </div>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="h-12 bg-white border-rose-100 focus:ring-rose-200 rounded-xl text-slate-700 font-bold">
+                    <SelectValue placeholder="Select Data Segment" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                    <SelectItem value="all" className="rounded-lg font-bold">All Database Records</SelectItem>
+                    {PART_CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat} className="rounded-lg">{cat} Category Only</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <p className="text-sm text-rose-700 font-medium leading-relaxed">
-                Clearing all data will permanently remove all call records, quotations, leads, visits, and targets from the shared cloud database. This action cannot be undone.
+                {selectedCategory === 'all' 
+                  ? "Clearing all data will permanently remove all call records, quotations, leads, visits, and targets from the shared cloud database. This action cannot be undone."
+                  : `Clearing data for segment "${selectedCategory}" will permanently remove all related call records and quotations from the shared cloud database. This action cannot be undone.`
+                }
               </p>
               
               <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                 <DialogTrigger render={<Button className="w-full h-14 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" />}>
-                  <Trash2 className="w-5 h-5" /> Delete All Database Records
+                  <Trash2 className="w-5 h-5" /> 
+                  {selectedCategory === 'all' ? "Delete All Database Records" : `Delete ${selectedCategory} Records`}
                 </DialogTrigger>
                 <DialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8 max-w-md">
                   <DialogHeader>
@@ -62,7 +89,10 @@ export function DataManagementTab() {
                     </div>
                     <DialogTitle className="text-2xl font-black text-center text-slate-900">Final Confirmation</DialogTitle>
                     <DialogDescription className="text-center text-slate-500 font-medium py-2">
-                      Are you absolutely sure you want to wipe the entire database? This will affect all users.
+                      {selectedCategory === 'all' 
+                        ? "Are you absolutely sure you want to wipe the entire database? This will affect all users."
+                        : `Are you absolutely sure you want to delete all records for the "${selectedCategory}" category?`
+                      }
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-6">
@@ -74,11 +104,11 @@ export function DataManagementTab() {
                       Cancel
                     </Button>
                     <Button 
-                      onClick={handleDeleteAll}
+                      onClick={handleDelete}
                       disabled={isDeleting}
                       className="flex-1 h-14 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-200"
                     >
-                      {isDeleting ? "Wiping Data..." : "Yes, Purge Everything"}
+                      {isDeleting ? "Wiping Data..." : "Yes, Delete Data"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
