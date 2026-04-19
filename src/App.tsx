@@ -59,7 +59,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfWeek, endOfWeek, addWeeks, isWithinInterval, isBefore, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CALL_TYPES, CALL_STATUSES, ENGINE_MAKES, FOLLOW_UP_TYPES, FOS_NAMES, PART_CATEGORIES } from './constants';
+import { CALL_TYPES, CALL_STATUSES, ENGINE_MAKES, FOLLOW_UP_TYPES, FOS_NAMES, PART_CATEGORIES, SUPPORT_REQUIRED } from './constants';
 import { CallType, CallStatus } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -87,6 +87,7 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [callsPage, setCallsPage] = useState(1);
   const [dashboardCategoryFilter, setDashboardCategoryFilter] = useState<string>('all');
+  const [dashboardSupportFilter, setDashboardSupportFilter] = useState<string>('all');
   const callsPerPage = 50;
 
   const [formData, setFormData] = useState({
@@ -271,9 +272,15 @@ export default function App() {
       (dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter) &&
       c.appointmentDate && parseISO(c.appointmentDate) >= new Date()
     ).length,
-    totalQuotations: quotations.filter(q => dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter).length,
+    totalQuotations: quotations.filter(q => 
+      (dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter) &&
+      (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter)
+    ).length,
     totalQuotationValue: quotations
-      .filter(q => dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter)
+      .filter(q => 
+        (dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter) &&
+        (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter)
+      )
       .reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0),
     totalLeads: leads.length, // No partCategory in leads
     totalVisits: visits.length, // No partCategory in visits
@@ -891,18 +898,33 @@ export default function App() {
                   <Filter className="w-5 h-5" />
                   <span className="font-bold text-sm tracking-wide uppercase">Dashboard Filter</span>
                 </div>
-                <div className="w-full md:w-64">
-                  <Select value={dashboardCategoryFilter} onValueChange={setDashboardCategoryFilter}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white focus:ring-white/20 rounded-xl hover:bg-white/20 transition-all font-bold">
-                      <SelectValue placeholder="Part Category Filter" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                      <SelectItem value="all" className="rounded-lg">All Categories</SelectItem>
-                      {PART_CATEGORIES.filter(c => c !== 'Other').map(cat => (
-                        <SelectItem key={cat} value={cat} className="rounded-lg">{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                  <div className="w-full md:w-64">
+                    <Select value={dashboardCategoryFilter} onValueChange={setDashboardCategoryFilter}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white focus:ring-white/20 rounded-xl hover:bg-white/20 transition-all font-bold">
+                        <SelectValue placeholder="Part Category Filter" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                        <SelectItem value="all" className="rounded-lg">All Categories</SelectItem>
+                        {PART_CATEGORIES.filter(c => c !== 'Other').map(cat => (
+                          <SelectItem key={cat} value={cat} className="rounded-lg">{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-full md:w-64">
+                    <Select value={dashboardSupportFilter} onValueChange={setDashboardSupportFilter}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white focus:ring-white/20 rounded-xl hover:bg-white/20 transition-all font-bold">
+                        <SelectValue placeholder="Support Filter" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                        <SelectItem value="all" className="rounded-lg">All Support Types</SelectItem>
+                        {SUPPORT_REQUIRED.map(s => (
+                          <SelectItem key={s} value={s} className="rounded-lg">{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

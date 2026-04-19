@@ -26,6 +26,7 @@ export function QuotationsTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [supportFilter, setSupportFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -56,7 +57,8 @@ export function QuotationsTab() {
     likelyMonthOfClosure: MONTHS[new Date().getMonth()],
     supportRequired: SUPPORT_REQUIRED[0],
     platform: '',
-    remarks: ''
+    remarks: '',
+    quotationDate: new Date().toISOString().split('T')[0]
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -128,7 +130,8 @@ export function QuotationsTab() {
         likelyMonthOfClosure: row['Likely Month Of Closure'] || MONTHS[new Date().getMonth()],
         supportRequired: row['Support Required'] || SUPPORT_REQUIRED[0],
         platform: row['Platform'] || '',
-        remarks: row['Remarks'] || ''
+        remarks: row['Remarks'] || '',
+        quotationDate: row['Quotation Date'] ? new Date(row['Quotation Date']).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
       };
     }).filter(Boolean);
 
@@ -141,7 +144,8 @@ export function QuotationsTab() {
     const matchesSearch = q.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          q.quotationNo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || q.partCategory === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesSupport = supportFilter === 'all' || q.supportRequired === supportFilter;
+    return matchesSearch && matchesCategory && matchesSupport;
   });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -173,13 +177,26 @@ export function QuotationsTab() {
               </SelectContent>
             </Select>
           </div>
+          <div className="w-full md:w-48">
+            <Select value={supportFilter} onValueChange={setSupportFilter}>
+              <SelectTrigger className="bg-indigo-50/50 border-none focus:ring-indigo-500/20 rounded-xl text-slate-700">
+                <SelectValue placeholder="Support Filter" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                <SelectItem value="all" className="rounded-lg">All Support</SelectItem>
+                {SUPPORT_REQUIRED.map(s => (
+                  <SelectItem key={s} value={s} className="rounded-lg">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
           <BulkUploadDialog 
             title="Quotations" 
             templateHeaders={[
-              'Quotation No', 'Customer Name', 'Address', 'Territory', 'Branch', 
+              'Quotation No', 'Quotation Date', 'Customer Name', 'Address', 'Territory', 'Branch', 
               'FOS Name', 'Contact Person', 'Mobile Number', 'Email ID', 
               'DG Rating KVA', 'Engine Make', 'ESN', 'Engine Model', 
               'Part No', 'Part Desc', 'Part Category', 'QTY', 
@@ -204,6 +221,10 @@ export function QuotationsTab() {
                 <div className="space-y-2">
                   <Label>Quotation No</Label>
                   <Input required value={formData.quotationNo} onChange={e => setFormData({...formData, quotationNo: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Quotation Date</Label>
+                  <Input type="date" required value={formData.quotationDate} onChange={e => setFormData({...formData, quotationDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Customer Name</Label>
@@ -388,6 +409,7 @@ export function QuotationsTab() {
           <Table>
             <TableHeader className="bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10">
               <TableRow className="border-slate-100 hover:bg-transparent">
+                <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Date</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Quote No</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Customer</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Amount</TableHead>
@@ -399,13 +421,14 @@ export function QuotationsTab() {
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                     No quotations found.
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedData.map((q) => (
                   <TableRow key={q.id} className="hover:bg-indigo-50/30 transition-colors group border-slate-50">
+                    <TableCell className="text-slate-600 font-medium">{q.quotationDate}</TableCell>
                     <TableCell className="font-bold text-slate-800">{q.quotationNo}</TableCell>
                     <TableCell>
                       <div className="font-bold text-slate-800">{q.customerName}</div>

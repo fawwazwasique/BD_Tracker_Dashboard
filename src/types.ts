@@ -66,6 +66,7 @@ export interface Quotation {
   platform: string;
   remarks: string;
   createdAt: string;
+  quotationDate: string;
 }
 
 export interface Lead {
