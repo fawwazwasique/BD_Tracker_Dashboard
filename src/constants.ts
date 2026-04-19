@@ -118,5 +118,6 @@ export const PART_CATEGORIES = [
   'RAS',
   'BESS',
   'RECD',
+  'DFK',
   'Other'
 ];
