@@ -74,10 +74,8 @@ export function BulkUploadDialog({ title, templateHeaders, onUpload }: BulkUploa
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 bg-white/80 backdrop-blur-xl border-slate-200 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold shadow-sm transition-all">
-          <Upload className="w-4 h-4" /> Bulk Upload
-        </Button>
+      <DialogTrigger render={<Button variant="outline" className="gap-2 bg-white/80 backdrop-blur-xl border-slate-200 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold shadow-sm transition-all" />}>
+        <Upload className="w-4 h-4" /> Bulk Upload
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
         <DialogHeader>

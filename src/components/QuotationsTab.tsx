@@ -44,7 +44,7 @@ export function QuotationsTab() {
     emailId: '',
     dgRatingKva: '',
     engineMake: '',
-    esn: '',
+    esns: [''],
     engineModel: '',
     partNo: '',
     partDesc: '',
@@ -70,7 +70,10 @@ export function QuotationsTab() {
   };
 
   const handleEdit = (q: Quotation) => {
-    setFormData({ ...q });
+    setFormData({ 
+      ...q,
+      esns: Array.isArray(q.esns) ? [...q.esns] : [(q as any).esn || '']
+    });
     setEditingId(q.id);
     setIsDialogOpen(true);
   };
@@ -109,10 +112,10 @@ export function QuotationsTab() {
         return found ? row[found] : undefined;
       };
 
-      const quotNo = getVal(['Quotation No', 'QuotationNo', 'Quote No']);
+      const quotNo = getVal(['Quotation No', 'QuotationNo', 'Quote No']) || `QUO-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       const custName = getVal(['Customer Name', 'CustomerName', 'Company']);
       
-      if (!quotNo || !custName) return null;
+      if (!custName) return null;
       
       try {
         const stageName = getVal(['Sales Stage', 'SalesStage', 'Stage']) || QUOTE_STAGES[0].name;
@@ -131,7 +134,7 @@ export function QuotationsTab() {
           emailId: getVal(['Email ID', 'Email', 'EmailID']) || '',
           dgRatingKva: getVal(['DG Rating KVA', 'KVA', 'Rating']) || '',
           engineMake: getVal(['Engine Make', 'Make']) || '',
-          esn: getVal(['ESN', 'Serial No']) || '',
+          esns: (getVal(['ESN', 'Serial No']) || '').split(',').map((s: string) => s.trim()),
           engineModel: getVal(['Engine Model', 'Model']) || '',
           partNo: getVal(['Part No', 'PartNumber']) || '',
           partDesc: getVal(['Part Desc', 'Description']) || '',
@@ -175,8 +178,12 @@ export function QuotationsTab() {
   const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleExport = () => {
-    exportToCSV(filtered, "Quotations", [
-      "quotationNo", "quotationDate", "customerName", "address", "territory", "branch", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esn", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "supportRequired", "platform", "remarks", "createdAt"
+    const exportData = filtered.map(q => ({
+      ...q,
+      esns: Array.isArray(q.esns) ? q.esns.join('; ') : (q.esn || '')
+    }));
+    exportToCSV(exportData, "Quotations", [
+      "quotationNo", "quotationDate", "customerName", "address", "territory", "branch", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esns", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "supportRequired", "platform", "remarks", "createdAt"
     ]);
   };
 
@@ -256,15 +263,15 @@ export function QuotationsTab() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Quotation No</Label>
-                  <Input required value={formData.quotationNo} onChange={e => setFormData({...formData, quotationNo: e.target.value})} />
+                  <Input value={formData.quotationNo} onChange={e => setFormData({...formData, quotationNo: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Quotation Date</Label>
-                  <Input type="date" required value={formData.quotationDate} onChange={e => setFormData({...formData, quotationDate: e.target.value})} />
+                  <Input type="date" value={formData.quotationDate} onChange={e => setFormData({...formData, quotationDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Customer Name</Label>
-                  <Input required value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
+                  <Input value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Contact Person</Label>
@@ -327,9 +334,48 @@ export function QuotationsTab() {
                   <Label>Engine Make</Label>
                   <Input value={formData.engineMake} onChange={e => setFormData({...formData, engineMake: e.target.value})} />
                 </div>
-                <div className="space-y-2">
-                  <Label>ESN</Label>
-                  <Input value={formData.esn} onChange={e => setFormData({...formData, esn: e.target.value})} />
+                <div className="space-y-4">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ESNs</Label>
+                  <div className="space-y-2">
+                    {formData.esns.map((esn, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <Input 
+                          placeholder={`ESN ${idx + 1}`} 
+                          value={esn}
+                          onChange={e => {
+                            const newEsns = [...formData.esns];
+                            newEsns[idx] = e.target.value;
+                            setFormData({...formData, esns: newEsns});
+                          }}
+                        />
+                        {formData.esns.length > 1 && (
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => {
+                              const newEsns = formData.esns.filter((_, i) => i !== idx);
+                              setFormData({...formData, esns: newEsns});
+                            }}
+                            className="text-rose-500 hover:bg-rose-50 rounded-lg shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setFormData({...formData, esns: [...formData.esns, '']});
+                      }}
+                      className="w-full border-dashed border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-xl h-10 font-bold"
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Add Another ESN
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Engine Model</Label>
@@ -448,6 +494,7 @@ export function QuotationsTab() {
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Date</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Quote No</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Customer</TableHead>
+                <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">ESNs</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Amount</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Stage</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Status</TableHead>
@@ -469,6 +516,11 @@ export function QuotationsTab() {
                     <TableCell>
                       <div className="font-bold text-slate-800">{q.customerName}</div>
                       <div className="text-[11px] font-medium text-slate-500 mt-0.5">{q.territory} • {q.branch}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-[10px] font-bold text-slate-600 max-w-[100px] truncate">
+                        {Array.isArray(q.esns) ? q.esns.filter(Boolean).join(', ') : '-'}
+                      </div>
                     </TableCell>
                     <TableCell className="font-bold text-slate-700">₹{q.basicAmount.toLocaleString()}</TableCell>
                     <TableCell>

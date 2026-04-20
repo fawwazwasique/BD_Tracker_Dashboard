@@ -99,8 +99,12 @@ export default function App() {
     );
 
     if (filteredDashboardCalls.length > 0) {
-      exportToCSV(filteredDashboardCalls, "Dashboard_Calls", [
-        "customerName", "contactPerson", "phoneNumber", "email", "location", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt", "followUpDate", "appointmentDate", "appointmentTime"
+      const exportData = filteredDashboardCalls.map(c => ({
+        ...c,
+        esns: Array.isArray(c.dgSetDetails?.esns) ? c.dgSetDetails.esns.join('; ') : (c.dgSetDetails?.esn || '')
+      }));
+      exportToCSV(exportData, "Dashboard_Calls", [
+        "customerName", "contactPerson", "phoneNumber", "email", "location", "qty", "esns", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt", "followUpDate", "appointmentDate", "appointmentTime"
       ]);
     }
     if (filteredDashboardQuotes.length > 0) {
@@ -111,8 +115,12 @@ export default function App() {
   };
 
   const handleExportCallsData = () => {
-    exportToCSV(filteredCalls, "Calls_Management", [
-      "customerName", "contactPerson", "phoneNumber", "email", "location", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt"
+    const exportData = filteredCalls.map(c => ({
+      ...c,
+      esns: Array.isArray(c.dgSetDetails?.esns) ? c.dgSetDetails.esns.join('; ') : (c.dgSetDetails?.esn || '')
+    }));
+    exportToCSV(exportData, "Calls_Management", [
+      "customerName", "contactPerson", "phoneNumber", "email", "location", "qty", "esns", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt"
     ]);
   };
 
@@ -127,8 +135,9 @@ export default function App() {
     dgSetDetails: {
       kva: '',
       engineMake: 'Cummins',
-      esn: '',
+      esns: [''],
     },
+    qty: 1,
     partNo: '',
     partDesc: '',
     partCategory: PART_CATEGORIES[0],
@@ -189,7 +198,8 @@ export default function App() {
       phoneNumber: '',
       email: '',
       location: '',
-      dgSetDetails: { kva: '', engineMake: 'Cummins', esn: '' },
+      dgSetDetails: { kva: '', engineMake: 'Cummins', esns: [''] },
+      qty: 1,
       partNo: '',
       partDesc: '',
       partCategory: PART_CATEGORIES[0],
@@ -212,7 +222,12 @@ export default function App() {
       phoneNumber: call.phoneNumber,
       email: call.email,
       location: call.location,
-      dgSetDetails: { ...call.dgSetDetails },
+      dgSetDetails: { 
+        kva: call.dgSetDetails?.kva || '',
+        engineMake: call.dgSetDetails?.engineMake || 'Cummins',
+        esns: Array.isArray(call.dgSetDetails?.esns) ? [...call.dgSetDetails.esns] : [call.dgSetDetails?.esn || '']
+      },
+      qty: call.qty || 1,
       partNo: call.partNo || '',
       partDesc: call.partDesc || '',
       partCategory: call.partCategory || '',
@@ -272,8 +287,9 @@ export default function App() {
           dgSetDetails: {
             kva: getVal(['KVA Rating', 'KVA']) || '',
             engineMake: getVal(['Engine Make', 'Make']) || 'Cummins',
-            esn: getVal(['ESN', 'Engine Serial No']) || ''
+            esns: (getVal(['ESN', 'Engine Serial No']) || '').split(',').map((s: string) => s.trim())
           },
+          qty: parseInt(getVal(['QTY', 'Quantity']) || '1'),
           partNo: getVal(['Part No', 'PartNumber']) || '',
           partDesc: getVal(['Part Desc', 'Description']) || '',
           partCategory: getVal(['Part Category', 'Category']) || PART_CATEGORIES[0],
@@ -601,7 +617,6 @@ export default function App() {
                     <Input 
                       id="customerName" 
                       placeholder="e.g. John Doe" 
-                      required 
                       className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500/20 rounded-xl"
                       value={formData.customerName}
                       onChange={e => setFormData({...formData, customerName: e.target.value})}
@@ -703,22 +718,66 @@ export default function App() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="esn" className="text-xs font-bold text-slate-500 uppercase tracking-wider">ESN</Label>
-                      <Input 
-                        id="esn" 
-                        placeholder="Engine Serial Number" 
-                        className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500/20 rounded-xl"
-                        value={formData.dgSetDetails.esn}
-                        onChange={e => setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esn: e.target.value}})}
-                      />
+                    <div className="space-y-4">
+                      <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ESNs</Label>
+                      {formData.dgSetDetails.esns.map((esn, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <Input 
+                            placeholder={`ESN ${idx + 1}`} 
+                            className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500/20 rounded-xl"
+                            value={esn}
+                            onChange={e => {
+                              const newEsns = [...formData.dgSetDetails.esns];
+                              newEsns[idx] = e.target.value;
+                              setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esns: newEsns}});
+                            }}
+                          />
+                          {formData.dgSetDetails.esns.length > 1 && (
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => {
+                                const newEsns = formData.dgSetDetails.esns.filter((_, i) => i !== idx);
+                                setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esns: newEsns}});
+                              }}
+                              className="text-rose-500 hover:bg-rose-50 rounded-lg shrink-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esns: [...formData.dgSetDetails.esns, '']}});
+                        }}
+                        className="w-full border-dashed border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-xl h-10 font-bold"
+                      >
+                        <Plus className="w-4 h-4 mr-2" /> Add Another ESN
+                      </Button>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4 border-t border-slate-100 pt-4">
                   <h3 className="font-bold text-xs uppercase tracking-wider text-indigo-500">Part Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="qty" className="text-xs font-bold text-slate-500 uppercase tracking-wider">QTY</Label>
+                      <Input 
+                        id="qty" 
+                        type="number"
+                        placeholder="1" 
+                        min="1"
+                        className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500/20 rounded-xl"
+                        value={formData.qty}
+                        onChange={e => setFormData({...formData, qty: parseInt(e.target.value) || 1})}
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="partNo" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Part No</Label>
                       <Input 
@@ -1264,6 +1323,10 @@ export default function App() {
                                         <p className="font-bold text-slate-800">{call.phoneNumber}</p>
                                       </div>
                                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">PART QTY</p>
+                                        <p className="font-bold text-slate-800">{call.qty || 1}</p>
+                                      </div>
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Follow up Type</p>
                                         <p className="font-bold text-slate-800">{call.followUpType || '-'}</p>
                                       </div>
@@ -1297,8 +1360,12 @@ export default function App() {
                                           <p className="font-bold text-slate-800">{call.dgSetDetails.engineMake}</p>
                                         </div>
                                         <div>
-                                          <p className="text-xs font-semibold text-slate-500 mb-0.5">ESN</p>
-                                          <p className="font-bold text-slate-800">{call.dgSetDetails.esn}</p>
+                                          <p className="text-xs font-semibold text-slate-500 mb-0.5">ESNs</p>
+                                          <p className="font-bold text-slate-800">
+                                            {Array.isArray(call.dgSetDetails?.esns) 
+                                              ? call.dgSetDetails.esns.filter(Boolean).join(', ') 
+                                              : (call.dgSetDetails?.esn || '-')}
+                                          </p>
                                         </div>
                                       </div>
                                     </div>

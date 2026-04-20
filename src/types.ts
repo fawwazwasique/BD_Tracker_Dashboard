@@ -21,8 +21,9 @@ export interface Call {
   dgSetDetails: {
     kva: string;
     engineMake: string;
-    esn: string;
+    esns: string[];
   };
+  qty: number;
   partNo: string;
   partDesc: string;
   partCategory: string;
@@ -50,7 +51,7 @@ export interface Quotation {
   emailId: string;
   dgRatingKva: string;
   engineMake: string;
-  esn: string;
+  esns: string[];
   engineModel: string;
   partNo: string;
   partDesc: string;
@@ -93,7 +94,7 @@ export interface Visit {
   dgSetDetails: {
     kva: string;
     engineMake: string;
-    esn: string;
+    esns: string[];
   };
   fosName: string;
   visitPurpose: string;

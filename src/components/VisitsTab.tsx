@@ -33,7 +33,7 @@ export function VisitsTab() {
     phoneNumber: '',
     email: '',
     location: '',
-    dgSetDetails: { kva: '', engineMake: ENGINE_MAKES[0], esn: '' },
+    dgSetDetails: { kva: '', engineMake: ENGINE_MAKES[0], esns: [''] },
     fosName: LEAD_OWNERS[0],
     visitPurpose: VISIT_PURPOSES[0],
     visitType: VISIT_TYPES[0],
@@ -49,7 +49,13 @@ export function VisitsTab() {
   };
 
   const handleEdit = (v: Visit) => {
-    setFormData({ ...v, dgSetDetails: { ...v.dgSetDetails } });
+    setFormData({ 
+      ...v, 
+      dgSetDetails: { 
+        ...v.dgSetDetails,
+        esns: Array.isArray(v.dgSetDetails?.esns) ? [...v.dgSetDetails.esns] : [(v.dgSetDetails as any)?.esn || '']
+      } 
+    });
     setEditingId(v.id);
     setIsDialogOpen(true);
   };
@@ -90,7 +96,7 @@ export function VisitsTab() {
           dgSetDetails: {
             kva: getVal(['KVA Rating', 'KVA']) || '',
             engineMake: getVal(['Engine Make', 'Make']) || ENGINE_MAKES[0],
-            esn: getVal(['ESN', 'Engine Serial No']) || ''
+            esns: (getVal(['ESN', 'Engine Serial No']) || '').split(',').map((s: string) => s.trim())
           },
           fosName: getVal(['FOS Name', 'Lead Owner', 'Owner']) || '',
           visitPurpose: getVal(['Visit Purpose', 'Purpose']) || VISIT_PURPOSES[0],
@@ -127,11 +133,11 @@ export function VisitsTab() {
       ...v,
       kva: v.dgSetDetails.kva,
       engineMake: v.dgSetDetails.engineMake,
-      esn: v.dgSetDetails.esn
+      esns: Array.isArray(v.dgSetDetails.esns) ? v.dgSetDetails.esns.join('; ') : v.dgSetDetails.esn
     }));
 
     exportToCSV(exportData, "Visits", [
-      "customerName", "contactPerson", "phoneNumber", "email", "location", "kva", "engineMake", "esn", "fosName", "visitPurpose", "visitType", "status", "remarks", "createdAt"
+      "customerName", "contactPerson", "phoneNumber", "email", "location", "kva", "engineMake", "esns", "fosName", "visitPurpose", "visitType", "status", "remarks", "createdAt"
     ]);
   };
 
@@ -180,7 +186,7 @@ export function VisitsTab() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Customer Name</Label>
-                  <Input required value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
+                  <Input value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Contact Person</Label>
@@ -202,7 +208,7 @@ export function VisitsTab() {
 
               <div className="space-y-4 border-t pt-4">
                 <h3 className="font-semibold text-sm uppercase tracking-wider text-gray-500">DG Set Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>KVA Rating</Label>
                     <Input value={formData.dgSetDetails.kva} onChange={e => setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, kva: e.target.value}})} />
@@ -214,9 +220,48 @@ export function VisitsTab() {
                       <SelectContent>{ENGINE_MAKES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div className="space-y-4">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">ESNs</Label>
                   <div className="space-y-2">
-                    <Label>ESN</Label>
-                    <Input value={formData.dgSetDetails.esn} onChange={e => setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esn: e.target.value}})} />
+                    {formData.dgSetDetails.esns.map((esn, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <Input 
+                          placeholder={`ESN ${idx + 1}`} 
+                          value={esn}
+                          onChange={e => {
+                            const newEsns = [...formData.dgSetDetails.esns];
+                            newEsns[idx] = e.target.value;
+                            setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esns: newEsns}});
+                          }}
+                        />
+                        {formData.dgSetDetails.esns.length > 1 && (
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => {
+                              const newEsns = formData.dgSetDetails.esns.filter((_, i) => i !== idx);
+                              setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esns: newEsns}});
+                            }}
+                            className="text-rose-500 hover:bg-rose-50 rounded-lg shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setFormData({...formData, dgSetDetails: {...formData.dgSetDetails, esns: [...formData.dgSetDetails.esns, '']}});
+                      }}
+                      className="w-full border-dashed border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-xl h-10 font-bold"
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Add Another ESN
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -302,6 +347,7 @@ export function VisitsTab() {
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Company</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">FOS Name</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Purpose</TableHead>
+                <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">ESNs</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Type</TableHead>
                 <TableHead className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Status</TableHead>
                 <TableHead className="text-right font-bold text-slate-500 uppercase tracking-wider text-[10px]">Actions</TableHead>
@@ -326,6 +372,11 @@ export function VisitsTab() {
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">
                         {v.visitPurpose}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-[10px] font-bold text-slate-600 max-w-[120px] truncate">
+                        {Array.isArray(v.dgSetDetails?.esns) ? v.dgSetDetails.esns.filter(Boolean).join(', ') : '-'}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">

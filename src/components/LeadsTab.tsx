@@ -163,7 +163,7 @@ export function LeadsTab() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Customer Name</Label>
-                  <Input required value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
+                  <Input value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Contact Person</Label>
