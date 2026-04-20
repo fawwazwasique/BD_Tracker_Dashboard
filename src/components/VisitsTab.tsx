@@ -66,30 +66,50 @@ export function VisitsTab() {
   };
 
   const handleBulkUpload = async (data: any[]) => {
+    let successCount = 0;
     const payloads = data.map(row => {
-      if (!row['Customer Name']) return null;
-
-      return {
-        customerName: row['Customer Name'],
-        contactPerson: row['Contact Person'] || '',
-        phoneNumber: row['Phone Number'] || '',
-        email: row['Email'] || '',
-        location: row['Location'] || '',
-        dgSetDetails: {
-          kva: row['KVA Rating'] || '',
-          engineMake: row['Engine Make'] || ENGINE_MAKES[0],
-          esn: row['ESN'] || ''
-        },
-        fosName: row['FOS Name'] || '',
-        visitPurpose: row['Visit Purpose'] || VISIT_PURPOSES[0],
-        visitType: row['Visit Type'] || VISIT_TYPES[0],
-        status: row['Status'] || VISIT_STATUSES[0],
-        remarks: row['Remarks'] || ''
+      // Robust header matching
+      const getVal = (possibleHeaders: string[]) => {
+        const found = Object.keys(row).find(k => 
+          possibleHeaders.map(h => h.toLowerCase()).includes(k.toLowerCase())
+        );
+        return found ? row[found] : undefined;
       };
+
+      const customerName = getVal(['Customer Name', 'CustomerName', 'Company']);
+      if (!customerName) return null;
+
+      try {
+        successCount++;
+        return {
+          customerName: customerName,
+          contactPerson: getVal(['Contact Person', 'ContactPerson']) || '',
+          phoneNumber: getVal(['Phone Number', 'Phone', 'Mobile']) || '',
+          email: getVal(['Email', 'Email ID']) || '',
+          location: getVal(['Location', 'Address']) || '',
+          dgSetDetails: {
+            kva: getVal(['KVA Rating', 'KVA']) || '',
+            engineMake: getVal(['Engine Make', 'Make']) || ENGINE_MAKES[0],
+            esn: getVal(['ESN', 'Engine Serial No']) || ''
+          },
+          fosName: getVal(['FOS Name', 'Lead Owner', 'Owner']) || '',
+          visitPurpose: getVal(['Visit Purpose', 'Purpose']) || VISIT_PURPOSES[0],
+          visitType: getVal(['Visit Type', 'Type']) || VISIT_TYPES[0],
+          status: getVal(['Status']) || VISIT_STATUSES[0],
+          remarks: getVal(['Remarks', 'Notes']) || ''
+        };
+      } catch (err) {
+        console.error('Error parsing row:', row, err);
+        successCount--;
+        return null;
+      }
     }).filter(Boolean);
 
     if (payloads.length > 0) {
       await bulkAddVisits(payloads as any);
+      alert(`Successfully uploaded ${successCount} field visits.`);
+    } else {
+      alert('No valid records found in the CSV. Please check the column headers.');
     }
   };
 

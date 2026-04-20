@@ -36,18 +36,24 @@ export function BulkUploadDialog({ title, templateHeaders, onUpload }: BulkUploa
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
+        transformHeader: (header) => header.trim().replace(/^\uFEFF/, ''),
         complete: (results) => {
           if (results.errors.length > 0) {
             setError(`Error parsing CSV: ${results.errors[0].message}`);
             return;
           }
           
+          if (results.data.length === 0) {
+            setError('The uploaded CSV file is empty.');
+            return;
+          }
+
           // Basic validation: check if at least some expected headers exist
           const uploadedHeaders = results.meta.fields || [];
           const missingHeaders = templateHeaders.filter(h => !uploadedHeaders.includes(h));
           
           if (missingHeaders.length === templateHeaders.length) {
-            setError('Invalid CSV format. Please use the provided template.');
+            setError('Invalid CSV format. Please use the provided template or ensure headers match exactly.');
             return;
           }
 
@@ -68,8 +74,10 @@ export function BulkUploadDialog({ title, templateHeaders, onUpload }: BulkUploa
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger render={<Button variant="outline" className="gap-2 bg-white/80 backdrop-blur-xl border-slate-200 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold shadow-sm transition-all" />}>
-        <Upload className="w-4 h-4" /> Bulk Upload
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2 bg-white/80 backdrop-blur-xl border-slate-200 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-semibold shadow-sm transition-all">
+          <Upload className="w-4 h-4" /> Bulk Upload
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
         <DialogHeader>

@@ -14,7 +14,7 @@ import { exportToCSV } from '../lib/csvExport';
 const YEARS = ['2024', '2025', '2026', '2027'];
 
 export function FosTargetsTab() {
-  const { targets, addTarget, updateTarget, deleteTarget, visits, quotations } = useStore();
+  const { targets, addTarget, bulkAddTargets, updateTarget, deleteTarget, visits, quotations } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -70,21 +70,48 @@ export function FosTargetsTab() {
     resetForm();
   };
 
-  const handleBulkUpload = (data: any[]) => {
-    data.forEach(row => {
-      if (!row['FOS Name'] || !row['Month'] || !row['Year']) return;
+  const handleBulkUpload = async (data: any[]) => {
+    let successCount = 0;
+    const payloads = data.map(row => {
+      // Robust header matching
+      const getVal = (possibleHeaders: string[]) => {
+        const found = Object.keys(row).find(k => 
+          possibleHeaders.map(h => h.toLowerCase()).includes(k.toLowerCase())
+        );
+        return found ? row[found] : undefined;
+      };
 
-      addTarget({
-        fosName: row['FOS Name'],
-        month: row['Month'],
-        year: row['Year'],
-        targetVisits: parseInt(row['Target Visits']) || 0,
-        achievedVisits: parseInt(row['Achieved Visits']) || 0,
-        targetAmount: parseFloat(row['Target Amount']) || 0,
-        achievedAmount: parseFloat(row['Achieved Amount']) || 0,
-        remarks: row['Remarks'] || ''
-      });
-    });
+      const fosName = getVal(['FOS Name', 'Lead Owner', 'Owner']);
+      const month = getVal(['Month']);
+      const year = getVal(['Year']);
+
+      if (!fosName || !month || !year) return null;
+
+      try {
+        successCount++;
+        return {
+          fosName: fosName,
+          month: month,
+          year: year,
+          targetVisits: parseInt(getVal(['Target Visits', 'TargetVisits']) || '0') || 0,
+          achievedVisits: parseInt(getVal(['Achieved Visits', 'AchievedVisits']) || '0') || 0,
+          targetAmount: parseFloat(getVal(['Target Amount', 'TargetAmount']) || '0') || 0,
+          achievedAmount: parseFloat(getVal(['Achieved Amount', 'AchievedAmount']) || '0') || 0,
+          remarks: getVal(['Remarks', 'Notes']) || ''
+        };
+      } catch (err) {
+        console.error('Error parsing row:', row, err);
+        successCount--;
+        return null;
+      }
+    }).filter(Boolean);
+
+    if (payloads.length > 0) {
+      await bulkAddTargets(payloads as any);
+      alert(`Successfully uploaded ${successCount} FOS targets.`);
+    } else {
+      alert('No valid records found in the CSV. Please check the column headers (FOS Name, Month, and Year are required).');
+    }
   };
 
   const filtered = targets.filter(t => 

@@ -99,45 +99,67 @@ export function QuotationsTab() {
   };
 
   const handleBulkUpload = async (data: any[]) => {
+    let successCount = 0;
     const payloads = data.map(row => {
-      if (!row['Quotation No'] || !row['Customer Name']) return null;
-      
-      const stageName = row['Sales Stage'] || QUOTE_STAGES[0].name;
-      const stage = QUOTE_STAGES.find(s => s.name === stageName) || QUOTE_STAGES[0];
-
-      return {
-        quotationNo: row['Quotation No'],
-        customerName: row['Customer Name'],
-        address: row['Address'] || '',
-        territory: row['Territory'] || TERRITORIES[0],
-        branch: row['Branch'] || BRANCHES[0],
-        leadOwner: row['FOS Name'] || row['Lead Owner'] || FOS_NAMES[0],
-        contactPerson: row['Contact Person'] || '',
-        mobileNumber: row['Mobile Number'] || '',
-        emailId: row['Email ID'] || '',
-        dgRatingKva: row['DG Rating KVA'] || '',
-        engineMake: row['Engine Make'] || '',
-        esn: row['ESN'] || '',
-        engineModel: row['Engine Model'] || '',
-        partNo: row['Part No'] || '',
-        partDesc: row['Part Desc'] || '',
-        partCategory: row['Part Category'] || PART_CATEGORIES[0],
-        qty: parseInt(row['QTY']) || 1,
-        basicAmount: parseFloat(row['BASIC Amount']) || 0,
-        status: row['Status'] || QUOTE_STATUSES[0],
-        salesStage: stage.name,
-        stagePercent: stage.percent,
-        stageRemarks: stage.remarks,
-        likelyMonthOfClosure: row['Likely Month Of Closure'] || MONTHS[new Date().getMonth()],
-        supportRequired: row['Support Required'] || SUPPORT_REQUIRED[0],
-        platform: row['Platform'] || '',
-        remarks: row['Remarks'] || '',
-        quotationDate: row['Quotation Date'] ? new Date(row['Quotation Date']).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      // Robust header matching
+      const getVal = (possibleHeaders: string[]) => {
+        const found = Object.keys(row).find(k => 
+          possibleHeaders.map(h => h.toLowerCase()).includes(k.toLowerCase())
+        );
+        return found ? row[found] : undefined;
       };
+
+      const quotNo = getVal(['Quotation No', 'QuotationNo', 'Quote No']);
+      const custName = getVal(['Customer Name', 'CustomerName', 'Company']);
+      
+      if (!quotNo || !custName) return null;
+      
+      try {
+        const stageName = getVal(['Sales Stage', 'SalesStage', 'Stage']) || QUOTE_STAGES[0].name;
+        const stage = QUOTE_STAGES.find(s => s.name === stageName) || QUOTE_STAGES[0];
+
+        successCount++;
+        return {
+          quotationNo: quotNo,
+          customerName: custName,
+          address: getVal(['Address', 'Location']) || '',
+          territory: getVal(['Territory']) || TERRITORIES[0],
+          branch: getVal(['Branch']) || BRANCHES[0],
+          leadOwner: getVal(['FOS Name', 'Lead Owner', 'Owner']) || FOS_NAMES[0],
+          contactPerson: getVal(['Contact Person', 'ContactPerson']) || '',
+          mobileNumber: getVal(['Mobile Number', 'Mobile', 'Phone']) || '',
+          emailId: getVal(['Email ID', 'Email', 'EmailID']) || '',
+          dgRatingKva: getVal(['DG Rating KVA', 'KVA', 'Rating']) || '',
+          engineMake: getVal(['Engine Make', 'Make']) || '',
+          esn: getVal(['ESN', 'Serial No']) || '',
+          engineModel: getVal(['Engine Model', 'Model']) || '',
+          partNo: getVal(['Part No', 'PartNumber']) || '',
+          partDesc: getVal(['Part Desc', 'Description']) || '',
+          partCategory: getVal(['Part Category', 'Category']) || PART_CATEGORIES[0],
+          qty: parseInt(getVal(['QTY', 'Quantity']) || '1') || 1,
+          basicAmount: parseFloat(getVal(['BASIC Amount', 'Amount', 'BasicAmount']) || '0') || 0,
+          status: getVal(['Status']) || QUOTE_STATUSES[0],
+          salesStage: stage.name,
+          stagePercent: stage.percent,
+          stageRemarks: stage.remarks,
+          likelyMonthOfClosure: getVal(['Likely Month Of Closure', 'Closure Month']) || MONTHS[new Date().getMonth()],
+          supportRequired: getVal(['Support Required', 'Support']) || SUPPORT_REQUIRED[0],
+          platform: getVal(['Platform']) || '',
+          remarks: getVal(['Remarks', 'Notes']) || '',
+          quotationDate: getVal(['Quotation Date', 'Date']) ? new Date(getVal(['Quotation Date'])).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        };
+      } catch (err) {
+        console.error('Error parsing row:', row, err);
+        successCount--;
+        return null;
+      }
     }).filter(Boolean);
 
     if (payloads.length > 0) {
       await bulkAddQuotations(payloads as any);
+      alert(`Successfully uploaded ${successCount} quotations.`);
+    } else {
+      alert('No valid records found in the CSV. Please check the column headers (Quotation No and Customer Name are required).');
     }
   };
 

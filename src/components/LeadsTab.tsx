@@ -64,24 +64,44 @@ export function LeadsTab() {
   };
 
   const handleBulkUpload = async (data: any[]) => {
+    let successCount = 0;
     const payloads = data.map(row => {
-      if (!row['Customer Name']) return null;
-
-      return {
-        customerName: row['Customer Name'],
-        contactPerson: row['Contact Person'] || '',
-        mobileNumber: row['Mobile Number'] || '',
-        emailId: row['Email ID'] || '',
-        leadOwner: row['FOS Name'] || row['Lead Owner'] || FOS_NAMES[0],
-        opportunity: row['Opportunity'] || OPPORTUNITIES[0],
-        leadType: row['Lead Type'] || LEAD_TYPES[0],
-        leadSource: row['Lead Source'] || LEAD_SOURCES[0],
-        remarks: row['Remarks'] || ''
+      // Robust header matching
+      const getVal = (possibleHeaders: string[]) => {
+        const found = Object.keys(row).find(k => 
+          possibleHeaders.map(h => h.toLowerCase()).includes(k.toLowerCase())
+        );
+        return found ? row[found] : undefined;
       };
+
+      const customerName = getVal(['Customer Name', 'CustomerName', 'Company']);
+      if (!customerName) return null;
+
+      try {
+        successCount++;
+        return {
+          customerName: customerName,
+          contactPerson: getVal(['Contact Person', 'ContactPerson']) || '',
+          mobileNumber: getVal(['Mobile Number', 'Mobile', 'Phone']) || '',
+          emailId: getVal(['Email ID', 'Email', 'EmailID']) || '',
+          leadOwner: getVal(['FOS Name', 'Lead Owner', 'Owner']) || FOS_NAMES[0],
+          opportunity: getVal(['Opportunity']) || OPPORTUNITIES[0],
+          leadType: getVal(['Lead Type', 'Type']) || LEAD_TYPES[0],
+          leadSource: getVal(['Lead Source', 'Source']) || LEAD_SOURCES[0],
+          remarks: getVal(['Remarks', 'Notes']) || ''
+        };
+      } catch (err) {
+        console.error('Error parsing row:', row, err);
+        successCount--;
+        return null;
+      }
     }).filter(Boolean);
 
     if (payloads.length > 0) {
       await bulkAddLeads(payloads as any);
+      alert(`Successfully uploaded ${successCount} leads.`);
+    } else {
+      alert('No valid records found in the CSV. Please check the column headers.');
     }
   };
 

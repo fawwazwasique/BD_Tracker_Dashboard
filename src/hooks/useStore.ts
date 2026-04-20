@@ -165,6 +165,19 @@ export function useStore() {
     });
   };
 
+  const bulkAddTargets = async (data: Omit<FosTarget, 'id' | 'createdAt'>[]) => {
+    const batchSize = 500;
+    for (let i = 0; i < data.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const chunk = data.slice(i, i + batchSize);
+      chunk.forEach(item => {
+        const newDocRef = doc(collection(db, 'targets'));
+        batch.set(newDocRef, { ...item, createdAt: new Date().toISOString() });
+      });
+      await batch.commit();
+    }
+  };
+
   const updateTarget = async (id: string, updates: Partial<FosTarget>) => {
     await updateDoc(doc(db, 'targets', id), updates);
   };
@@ -210,7 +223,7 @@ export function useStore() {
     quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation,
     leads, addLead, bulkAddLeads, updateLead, deleteLead,
     visits, addVisit, bulkAddVisits, updateVisit, deleteVisit,
-    targets, addTarget, updateTarget, deleteTarget,
+    targets, addTarget, bulkAddTargets, updateTarget, deleteTarget,
     clearAllData,
     deleteDataByCategory,
     stats,
