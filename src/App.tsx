@@ -643,6 +643,16 @@ export default function App() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="location" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Location</Label>
+                    <Input 
+                      id="location" 
+                      placeholder="e.g. Pune, Maharashtra" 
+                      className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-500/20 rounded-xl"
+                      value={formData.location}
+                      onChange={e => setFormData({...formData, location: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email</Label>
                     <Input 
                       id="email" 
