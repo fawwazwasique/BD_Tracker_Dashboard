@@ -248,8 +248,8 @@ export default function App() {
     e.preventDefault();
     const callData = {
       ...formData,
-      followUpDate: formData.followUpDate?.toISOString(),
-      appointmentDate: formData.appointmentDate?.toISOString(),
+      followUpDate: formData.followUpDate?.toISOString() || null,
+      appointmentDate: formData.appointmentDate?.toISOString() || null,
     };
 
     if (editingCallId) {
@@ -273,8 +273,7 @@ export default function App() {
         return found ? row[found] : undefined;
       };
 
-      const customerName = getVal(['Customer Name', 'CustomerName', 'Company']);
-      if (!customerName) return null;
+      const customerName = getVal(['Customer Name', 'CustomerName', 'Company']) || 'Unnamed Customer';
       
       try {
         successCount++;
@@ -298,8 +297,8 @@ export default function App() {
           callType: (getVal(['Call Type']) as CallType) || 'Warm Call',
           status: (getVal(['Status']) as CallStatus) || 'Pending',
           remarks: getVal(['Remarks', 'Notes']) || '',
-          followUpDate: getVal(['Follow-up Date', 'Followup Date']) ? new Date(getVal(['Follow-up Date'])).toISOString() : undefined,
-          appointmentDate: getVal(['Appointment Date']) ? new Date(getVal(['Appointment Date'])).toISOString() : undefined,
+          followUpDate: getVal(['Follow-up Date', 'Followup Date']) ? new Date(getVal(['Follow-up Date'])).toISOString() : null,
+          appointmentDate: getVal(['Appointment Date']) ? new Date(getVal(['Appointment Date'])).toISOString() : null,
           appointmentTime: getVal(['Appointment Time', 'Time']) || '',
         };
       } catch (err) {

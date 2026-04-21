@@ -74,9 +74,8 @@ export function LeadsTab() {
         return found ? row[found] : undefined;
       };
 
-      const customerName = getVal(['Customer Name', 'CustomerName', 'Company']);
-      if (!customerName) return null;
-
+      const customerName = getVal(['Customer Name', 'CustomerName', 'Company']) || 'Unnamed Customer';
+      
       try {
         successCount++;
         return {

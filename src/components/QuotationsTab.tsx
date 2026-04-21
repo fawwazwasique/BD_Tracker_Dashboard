@@ -113,9 +113,7 @@ export function QuotationsTab() {
       };
 
       const quotNo = getVal(['Quotation No', 'QuotationNo', 'Quote No']) || `QUO-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-      const custName = getVal(['Customer Name', 'CustomerName', 'Company']);
-      
-      if (!custName) return null;
+      const custName = getVal(['Customer Name', 'CustomerName', 'Company']) || 'Unnamed Customer';
       
       try {
         const stageName = getVal(['Sales Stage', 'SalesStage', 'Stage']) || QUOTE_STAGES[0].name;
