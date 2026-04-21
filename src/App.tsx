@@ -1328,6 +1328,10 @@ export default function App() {
                                         <p className="font-bold text-slate-800">{call.contactPerson}</p>
                                       </div>
                                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Location</p>
+                                        <p className="font-bold text-slate-800">{call.location || '-'}</p>
+                                      </div>
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Phone</p>
                                         <p className="font-bold text-slate-800">{call.phoneNumber}</p>
                                       </div>
@@ -1489,10 +1493,10 @@ export default function App() {
                               </div>
                               <div className="flex flex-wrap gap-4 text-sm font-medium text-slate-500">
                                 <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                                  <Building2 className="w-4 h-4 text-slate-400" /> {call.location}
+                                  <Building2 className="w-4 h-4 text-slate-400" /> {call.contactPerson || '-'}
                                 </div>
                                 <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                                  <MapPin className="w-4 h-4 text-slate-400" /> {call.location}
+                                  <MapPin className="w-4 h-4 text-slate-400" /> {call.location || '-'}
                                 </div>
                                 <div className="flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 text-indigo-700">
                                   <Clock className="w-4 h-4 text-indigo-500" /> {format(parseISO(call.appointmentDate!), 'h:mm a')}
@@ -1504,7 +1508,90 @@ export default function App() {
                                 <p className="text-sm font-bold text-indigo-600">{format(parseISO(call.appointmentDate!), 'EEEE')}</p>
                                 <p className="text-xs font-semibold text-slate-500">{format(parseISO(call.appointmentDate!), 'MMMM d, yyyy')}</p>
                               </div>
-                              <Button size="sm" variant="outline" className="h-8 text-xs rounded-lg border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors">View Details</Button>
+                              <Dialog>
+                                <DialogTrigger render={<Button size="sm" variant="outline" className="h-8 text-xs rounded-lg border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors" />}>
+                                  View Details
+                                </DialogTrigger>
+                                <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl bg-white/95 backdrop-blur-xl">
+                                  <DialogHeader>
+                                    <DialogTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Call Details</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-4 py-4">
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Customer</p>
+                                        <p className="font-bold text-slate-800">{call.customerName || '-'}</p>
+                                      </div>
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Contact</p>
+                                        <p className="font-bold text-slate-800">{call.contactPerson || '-'}</p>
+                                      </div>
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Location</p>
+                                        <p className="font-bold text-slate-800">{call.location || '-'}</p>
+                                      </div>
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Phone</p>
+                                        <p className="font-bold text-slate-800">{call.phoneNumber || '-'}</p>
+                                      </div>
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">PART QTY</p>
+                                        <p className="font-bold text-slate-800">{call.qty || 1}</p>
+                                      </div>
+                                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Follow up Type</p>
+                                        <p className="font-bold text-slate-800">{call.followUpType || '-'}</p>
+                                      </div>
+                                    </div>
+                                    <div className="border-t border-slate-100 pt-4">
+                                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-3">Part Details</p>
+                                      <div className="grid grid-cols-3 gap-2 text-sm bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                                        <div>
+                                          <p className="text-xs font-semibold text-slate-500 mb-0.5">Part No</p>
+                                          <p className="font-bold text-slate-800">{call.partNo || '-'}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-xs font-semibold text-slate-500 mb-0.5">Part Desc</p>
+                                          <p className="font-bold text-slate-800">{call.partDesc || '-'}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-xs font-semibold text-slate-500 mb-0.5">Category</p>
+                                          <p className="font-bold text-slate-800">{call.partCategory || '-'}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {call.dgSetDetails && (
+                                      <div className="border-t border-slate-100 pt-4">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-3">DG Set Info</p>
+                                        <div className="grid grid-cols-3 gap-2 text-sm bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                                          <div>
+                                            <p className="text-xs font-semibold text-slate-500 mb-0.5">KVA</p>
+                                            <p className="font-bold text-slate-800">{call.dgSetDetails.kva || '-'}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs font-semibold text-slate-500 mb-0.5">Make</p>
+                                            <p className="font-bold text-slate-800">{call.dgSetDetails.engineMake || '-'}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-xs font-semibold text-slate-500 mb-0.5">ESNs</p>
+                                            <p className="font-bold text-slate-800">
+                                              {Array.isArray(call.dgSetDetails?.esns) 
+                                                ? call.dgSetDetails.esns.filter(Boolean).join(', ') 
+                                                : (call.dgSetDetails?.esn || '-')}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {call.remarks && (
+                                      <div className="border-t border-slate-100 pt-4">
+                                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-2">Remarks</p>
+                                        <p className="text-sm font-medium text-slate-600 italic bg-slate-50 p-3 rounded-xl border border-slate-100">"{call.remarks}"</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
                             </div>
                           </div>
                         </div>
