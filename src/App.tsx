@@ -75,7 +75,31 @@ import { Download, LogOut } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 
 function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signUp } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        await signUp(email, password, name);
+      } else {
+        await signIn(email, password);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-none shadow-2xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-xl">
@@ -86,16 +110,68 @@ function LoginScreen() {
           <CardTitle className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent italic">
             TRACKING WORKSPACE
           </CardTitle>
-          <CardDescription className="text-slate-500 font-medium">Please sign in to access your dashboard</CardDescription>
+          <CardDescription className="text-slate-500 font-medium">
+            {isSignUp ? 'Create your account' : 'Please sign in to access your dashboard'}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 pt-6">
-          <Button 
-            onClick={signIn}
-            className="w-full h-14 bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-100 hover:border-indigo-100 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-200/50 group"
-          >
-            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            Sign in with Google
-          </Button>
+        <CardContent className="space-y-4 pt-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name</Label>
+                <Input 
+                  type="text" 
+                  placeholder="e.g. John Doe" 
+                  required 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-12 bg-slate-50 border-slate-200 rounded-xl"
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</Label>
+              <Input 
+                type="email" 
+                placeholder="email@example.com" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 bg-slate-50 border-slate-200 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</Label>
+              <Input 
+                type="password" 
+                placeholder="••••••••" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-12 bg-slate-50 border-slate-200 rounded-xl"
+              />
+            </div>
+            
+            {error && <p className="text-xs font-bold text-rose-500 bg-rose-50 p-3 rounded-xl border border-rose-100">{error}</p>}
+
+            <Button 
+              type="submit"
+              disabled={loading}
+              className="w-full h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
+            </Button>
+          </form>
+
+          <div className="pt-2 text-center">
+            <button 
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+            >
+              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            </button>
+          </div>
+
           <p className="text-center text-xs text-slate-400 font-medium px-4 leading-relaxed">
             Manage your service calls, quotations, and leads efficiently with our integrated tracking system.
           </p>
