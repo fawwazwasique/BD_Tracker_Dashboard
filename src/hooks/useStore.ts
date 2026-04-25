@@ -26,16 +26,6 @@ export function useStore() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setCalls([]);
-      setQuotations([]);
-      setLeads([]);
-      setVisits([]);
-      setTargets([]);
-      setIsLoaded(true);
-      return;
-    }
-
     const unsubscribers = [
       onSnapshot(query(collection(db, 'calls'), orderBy('createdAt', 'desc')), (snapshot) => {
         setCalls(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Call)));
@@ -76,13 +66,13 @@ export function useStore() {
 
     setIsLoaded(true);
     return () => unsubscribers.forEach(unsub => unsub());
-  }, [user]);
+  }, []);
 
   // Actions
   const addCall = async (call: Omit<Call, 'id' | 'createdAt'>) => {
     await addDoc(collection(db, 'calls'), {
       ...call,
-      userId: user?.uid,
+      userId: 'public-user',
       createdAt: new Date().toISOString()
     });
   };
@@ -94,7 +84,7 @@ export function useStore() {
       const chunk = data.slice(i, i + batchSize);
       chunk.forEach(item => {
         const newDocRef = doc(collection(db, 'calls'));
-        batch.set(newDocRef, { ...item, userId: user?.uid, createdAt: new Date().toISOString() });
+        batch.set(newDocRef, { ...item, userId: 'public-user', createdAt: new Date().toISOString() });
       });
       await batch.commit();
     }
@@ -111,7 +101,7 @@ export function useStore() {
   const addQuotation = async (quotation: Omit<Quotation, 'id' | 'createdAt'>) => {
     await addDoc(collection(db, 'quotations'), {
       ...quotation,
-      userId: user?.uid,
+      userId: 'public-user',
       createdAt: new Date().toISOString()
     });
   };
@@ -123,7 +113,7 @@ export function useStore() {
       const chunk = data.slice(i, i + batchSize);
       chunk.forEach(item => {
         const newDocRef = doc(collection(db, 'quotations'));
-        batch.set(newDocRef, { ...item, userId: user?.uid, createdAt: new Date().toISOString() });
+        batch.set(newDocRef, { ...item, userId: 'public-user', createdAt: new Date().toISOString() });
       });
       await batch.commit();
     }
@@ -140,7 +130,7 @@ export function useStore() {
   const addLead = async (lead: Omit<Lead, 'id' | 'createdAt'>) => {
     await addDoc(collection(db, 'leads'), {
       ...lead,
-      userId: user?.uid,
+      userId: 'public-user',
       createdAt: new Date().toISOString()
     });
   };
@@ -152,7 +142,7 @@ export function useStore() {
       const chunk = data.slice(i, i + batchSize);
       chunk.forEach(item => {
         const newDocRef = doc(collection(db, 'leads'));
-        batch.set(newDocRef, { ...item, userId: user?.uid, createdAt: new Date().toISOString() });
+        batch.set(newDocRef, { ...item, userId: 'public-user', createdAt: new Date().toISOString() });
       });
       await batch.commit();
     }
@@ -169,7 +159,7 @@ export function useStore() {
   const addVisit = async (visit: Omit<Visit, 'id' | 'createdAt'>) => {
     await addDoc(collection(db, 'visits'), {
       ...visit,
-      userId: user?.uid,
+      userId: 'public-user',
       createdAt: new Date().toISOString()
     });
   };
@@ -181,7 +171,7 @@ export function useStore() {
       const chunk = data.slice(i, i + batchSize);
       chunk.forEach(item => {
         const newDocRef = doc(collection(db, 'visits'));
-        batch.set(newDocRef, { ...item, userId: user?.uid, createdAt: new Date().toISOString() });
+        batch.set(newDocRef, { ...item, userId: 'public-user', createdAt: new Date().toISOString() });
       });
       await batch.commit();
     }
@@ -198,7 +188,7 @@ export function useStore() {
   const addTarget = async (target: Omit<FosTarget, 'id' | 'createdAt'>) => {
     await addDoc(collection(db, 'targets'), {
       ...target,
-      userId: user?.uid,
+      userId: 'public-user',
       createdAt: new Date().toISOString()
     });
   };
@@ -210,7 +200,7 @@ export function useStore() {
       const chunk = data.slice(i, i + batchSize);
       chunk.forEach(item => {
         const newDocRef = doc(collection(db, 'targets'));
-        batch.set(newDocRef, { ...item, userId: user?.uid, createdAt: new Date().toISOString() });
+        batch.set(newDocRef, { ...item, userId: 'public-user', createdAt: new Date().toISOString() });
       });
       await batch.commit();
     }

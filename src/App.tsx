@@ -74,115 +74,8 @@ import { exportToCSV } from './lib/csvExport';
 import { Download, LogOut } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 
-function LoginScreen() {
-  const { signIn, signUp } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        await signUp(email, password, name);
-      } else {
-        await signIn(email, password);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-none shadow-2xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl rotate-12 flex items-center justify-center mb-6 shadow-lg shadow-indigo-200">
-            <Database className="w-8 h-8 text-white -rotate-12" />
-          </div>
-          <CardTitle className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent italic">
-            TRACKING WORKSPACE
-          </CardTitle>
-          <CardDescription className="text-slate-500 font-medium">
-            {isSignUp ? 'Create your account' : 'Please sign in to access your dashboard'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name</Label>
-                <Input 
-                  type="text" 
-                  placeholder="e.g. John Doe" 
-                  required 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-12 bg-slate-50 border-slate-200 rounded-xl"
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</Label>
-              <Input 
-                type="email" 
-                placeholder="email@example.com" 
-                required 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-12 bg-slate-50 border-slate-200 rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</Label>
-              <Input 
-                type="password" 
-                placeholder="••••••••" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12 bg-slate-50 border-slate-200 rounded-xl"
-              />
-            </div>
-            
-            {error && <p className="text-xs font-bold text-rose-500 bg-rose-50 p-3 rounded-xl border border-rose-100">{error}</p>}
-
-            <Button 
-              type="submit"
-              disabled={loading}
-              className="w-full h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
-            </Button>
-          </form>
-
-          <div className="pt-2 text-center">
-            <button 
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
-            >
-              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-            </button>
-          </div>
-
-          <p className="text-center text-xs text-slate-400 font-medium px-4 leading-relaxed">
-            Manage your service calls, quotations, and leads efficiently with our integrated tracking system.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 export default function App() {
-  const { user, profile, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const { 
     calls, addCall, bulkAddCalls, updateCall, deleteCall, 
     quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation,
@@ -300,9 +193,7 @@ export default function App() {
     c.status !== 'Completed'
   ).length;
 
-  if (!user) return <LoginScreen />;
-
-  const isAdmin = profile?.role === 'Admin';
+  const isAdmin = true; // All features public by default now
 
   const resetForm = () => {
     setFormData({
@@ -692,18 +583,6 @@ export default function App() {
         </nav>
 
         <div className="mt-auto space-y-4 pt-6">
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50/50 border border-indigo-100/50">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200">
-              {profile?.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{profile?.name}</p>
-              <p className="text-[10px] font-bold text-indigo-600 truncate uppercase tracking-wider">{profile?.role}</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={logout} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
           <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-100 text-center">
             <p className="text-[8px] text-slate-400 uppercase tracking-[0.4em] mb-1 font-black">Powered By</p>
             <p className="text-[10px] font-black text-indigo-900 tracking-widest uppercase">Fawwaz Creations</p>
