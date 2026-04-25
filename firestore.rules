@@ -6,50 +6,55 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Phase 3: Primitive Definitions
+    // Authentication and Role Helpers
     function isSignedIn() {
       return request.auth != null;
     }
     
-    function isOwner(data) {
-      return isSignedIn() && data.userId == request.auth.uid;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && getUserData().role == 'Admin';
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
+    // Section: Users
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
     }
 
     // Section 1: Calls
     match /calls/{callId} {
-      allow read, write: if true;
+      allow read, create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     // Section 2: Quotations
     match /quotations/{quotationId} {
-      allow read, write: if true;
+      allow read, create, update: if isSignedIn();
+      allow delete: if isAdmin(); // FOS cannot delete as per requirement
     }
 
     // Section 3: Leads
     match /leads/{leadId} {
-      allow read, write: if true;
+      allow read, create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     // Section 4: Visits
     match /visits/{visitId} {
-      allow read, write: if true;
+      allow read, create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     // Section 5: Targets
     match /targets/{targetId} {
-      allow read, write: if true;
+      allow read, create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
   }
 }

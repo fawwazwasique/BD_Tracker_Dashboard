@@ -125,3 +125,12 @@ export interface DashboardStats {
   totalLeads: number;
   totalVisits: number;
 }
+
+export type UserRole = 'Admin' | 'FOS';
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  role: UserRole;
+  name: string;
+}

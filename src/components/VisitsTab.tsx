@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../hooks/useStore';
 import { Visit } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { VISIT_PURPOSES, VISIT_TYPES, VISIT_STATUSES, ENGINE_MAKES, LEAD_OWNERS } from '../constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ import { exportToCSV } from '../lib/csvExport';
 
 export function VisitsTab() {
   const { visits, addVisit, bulkAddVisits, updateVisit, deleteVisit } = useStore();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'Admin';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -391,9 +394,11 @@ export function VisitsTab() {
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(v)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all">
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteVisit(v.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" onClick={() => deleteVisit(v.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

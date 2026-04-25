@@ -71,15 +71,48 @@ import { FosTargetsTab } from './components/FosTargetsTab';
 import { BulkUploadDialog } from './components/BulkUploadDialog';
 import { DataManagementTab } from './components/DataManagementTab';
 import { exportToCSV } from './lib/csvExport';
-import { Download } from 'lucide-react';
+import { Download, LogOut } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext';
+
+function LoginScreen() {
+  const { signIn } = useAuth();
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-none shadow-2xl rounded-3xl overflow-hidden bg-white/80 backdrop-blur-xl">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl rotate-12 flex items-center justify-center mb-6 shadow-lg shadow-indigo-200">
+            <Database className="w-8 h-8 text-white -rotate-12" />
+          </div>
+          <CardTitle className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent italic">
+            TRACKING WORKSPACE
+          </CardTitle>
+          <CardDescription className="text-slate-500 font-medium">Please sign in to access your dashboard</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <Button 
+            onClick={signIn}
+            className="w-full h-14 bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-100 hover:border-indigo-100 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-200/50 group"
+          >
+            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            Sign in with Google
+          </Button>
+          <p className="text-center text-xs text-slate-400 font-medium px-4 leading-relaxed">
+            Manage your service calls, quotations, and leads efficiently with our integrated tracking system.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default function App() {
+  const { user, profile, logout } = useAuth();
   const { 
     calls, addCall, bulkAddCalls, updateCall, deleteCall, 
     quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation,
     leads, addLead, bulkAddLeads, updateLead, deleteLead,
     visits, addVisit, bulkAddVisits, updateVisit, deleteVisit,
-    stats, isLoaded 
+    stats, isLoaded, error
   } = useStore();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -191,6 +224,10 @@ export default function App() {
     c.status !== 'Completed'
   ).length;
 
+  if (!user) return <LoginScreen />;
+
+  const isAdmin = profile?.role === 'Admin';
+
   const resetForm = () => {
     setFormData({
       customerName: '',
@@ -264,7 +301,8 @@ export default function App() {
 
   const handleBulkUploadCalls = async (data: any[]) => {
     let successCount = 0;
-    const payloads = data.map(row => {
+    let errorCount = 0;
+    const payloads = data.map((row, index) => {
       // Robust header matching
       const getVal = (possibleHeaders: string[]) => {
         const found = Object.keys(row).find(k => 
@@ -276,8 +314,15 @@ export default function App() {
       const customerName = getVal(['Customer Name', 'CustomerName', 'Company']) || 'Unnamed Customer';
       
       try {
-        successCount++;
-        return {
+        const parseDate = (val: any) => {
+          if (!val) return null;
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? null : d.toISOString();
+        };
+
+        const qtyVal = parseInt(getVal(['QTY', 'Quantity']) || '1');
+        
+        const payload = {
           customerName: customerName,
           contactPerson: getVal(['Contact Person', 'ContactPerson']) || '',
           phoneNumber: getVal(['Phone Number', 'Phone', 'Mobile']) || '',
@@ -286,9 +331,9 @@ export default function App() {
           dgSetDetails: {
             kva: getVal(['KVA Rating', 'KVA']) || '',
             engineMake: getVal(['Engine Make', 'Make']) || 'Cummins',
-            esns: (getVal(['ESN', 'Engine Serial No']) || '').split(',').map((s: string) => s.trim())
+            esns: (String(getVal(['ESN', 'Engine Serial No']) || '')).split(',').map((s: string) => s.trim())
           },
-          qty: parseInt(getVal(['QTY', 'Quantity']) || '1'),
+          qty: isNaN(qtyVal) ? 1 : qtyVal,
           partNo: getVal(['Part No', 'PartNumber']) || '',
           partDesc: getVal(['Part Desc', 'Description']) || '',
           partCategory: getVal(['Part Category', 'Category']) || PART_CATEGORIES[0],
@@ -297,20 +342,26 @@ export default function App() {
           callType: (getVal(['Call Type']) as CallType) || 'Warm Call',
           status: (getVal(['Status']) as CallStatus) || 'Pending',
           remarks: getVal(['Remarks', 'Notes']) || '',
-          followUpDate: getVal(['Follow-up Date', 'Followup Date']) ? new Date(getVal(['Follow-up Date'])).toISOString() : null,
-          appointmentDate: getVal(['Appointment Date']) ? new Date(getVal(['Appointment Date'])).toISOString() : null,
+          followUpDate: parseDate(getVal(['Follow-up Date', 'Followup Date'])),
+          appointmentDate: parseDate(getVal(['Appointment Date'])),
           appointmentTime: getVal(['Appointment Time', 'Time']) || '',
         };
+        successCount++;
+        return payload;
       } catch (err) {
-        console.error('Error parsing row:', row, err);
-        successCount--;
+        console.error(`Error parsing row ${index}:`, row, err);
+        errorCount++;
         return null;
       }
     }).filter(Boolean);
 
     if (payloads.length > 0) {
-      await bulkAddCalls(payloads as any);
-      alert(`Successfully uploaded ${successCount} call records.`);
+      try {
+        await bulkAddCalls(payloads as any);
+        alert(`Successfully uploaded ${successCount} records.${errorCount > 0 ? ` Skipped ${errorCount} records due to format errors.` : ''}`);
+      } catch (err: any) {
+        alert(`Failed to save to database: ${err.message}. You might have exceeded your daily upload limit (Firestore quota).`);
+      }
     } else {
       alert('No valid records found in the CSV. Please check the column headers.');
     }
@@ -467,11 +518,11 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="space-y-2 flex-1">
+        <nav className="space-y-1.5 flex-1 mt-4">
           <Button 
             variant={activeTab === 'dashboard' ? 'secondary' : 'ghost'} 
             className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
               activeTab === 'dashboard' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
             onClick={() => setActiveTab('dashboard')}
@@ -481,7 +532,7 @@ export default function App() {
           <Button 
             variant={activeTab === 'calls' ? 'secondary' : 'ghost'} 
             className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
               activeTab === 'calls' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
             onClick={() => setActiveTab('calls')}
@@ -491,27 +542,29 @@ export default function App() {
           <Button 
             variant={activeTab === 'quotations' ? 'secondary' : 'ghost'} 
             className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
               activeTab === 'quotations' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
             onClick={() => setActiveTab('quotations')}
           >
             <FileText className="w-4 h-4" /> <span className="text-sm">Quotations</span>
           </Button>
-          <Button 
-            variant={activeTab === 'analytics' ? 'secondary' : 'ghost'} 
-            className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
-              activeTab === 'analytics' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            )}
-            onClick={() => setActiveTab('analytics')}
-          >
-            <Clock className="w-4 h-4" /> <span className="text-sm">Analytics</span>
-          </Button>
+          {isAdmin && (
+            <Button 
+              variant={activeTab === 'analytics' ? 'secondary' : 'ghost'} 
+              className={cn(
+                "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
+                activeTab === 'analytics' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              )}
+              onClick={() => setActiveTab('analytics')}
+            >
+              <Clock className="w-4 h-4" /> <span className="text-sm">Analytics</span>
+            </Button>
+          )}
           <Button 
             variant={activeTab === 'leads' ? 'secondary' : 'ghost'} 
             className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
               activeTab === 'leads' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
             onClick={() => setActiveTab('leads')}
@@ -521,7 +574,7 @@ export default function App() {
           <Button 
             variant={activeTab === 'visits' ? 'secondary' : 'ghost'} 
             className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
               activeTab === 'visits' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
             onClick={() => setActiveTab('visits')}
@@ -531,7 +584,7 @@ export default function App() {
           <Button 
             variant={activeTab === 'targets' ? 'secondary' : 'ghost'} 
             className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
               activeTab === 'targets' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
             onClick={() => setActiveTab('targets')}
@@ -541,35 +594,55 @@ export default function App() {
           <Button 
             variant={activeTab === 'appointments' ? 'secondary' : 'ghost'} 
             className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
+              "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
               activeTab === 'appointments' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
             onClick={() => setActiveTab('appointments')}
           >
             <CalendarIcon className="w-4 h-4" /> <span className="text-sm">Appointments</span>
           </Button>
-          <Button 
-            variant={activeTab === 'management' ? 'secondary' : 'ghost'} 
-            className={cn(
-              "w-full justify-start gap-3 transition-all duration-300 h-12 rounded-xl border border-transparent font-semibold",
-              activeTab === 'management' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            )}
-            onClick={() => setActiveTab('management')}
-          >
-            <Database className="w-4 h-4" /> <span className="text-sm">Data Management</span>
-          </Button>
+          {isAdmin && (
+            <Button 
+              variant={activeTab === 'management' ? 'secondary' : 'ghost'} 
+              className={cn(
+                "w-full justify-start gap-3 transition-all duration-300 h-11 rounded-xl border border-transparent font-semibold",
+                activeTab === 'management' ? "bg-indigo-50 text-indigo-700 shadow-sm border-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              )}
+              onClick={() => setActiveTab('management')}
+            >
+              <Database className="w-4 h-4" /> <span className="text-sm">Data Management</span>
+            </Button>
+          )}
         </nav>
 
-        <div className="mt-auto pt-6">
-          <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100/50 text-center">
-            <p className="text-[8px] text-indigo-500 uppercase tracking-[0.4em] mb-2 font-black">Powered By</p>
-            <p className="text-xs font-black text-indigo-900 tracking-widest uppercase">Fawwaz Creations</p>
+        <div className="mt-auto space-y-4 pt-6">
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50/50 border border-indigo-100/50">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-200">
+              {profile?.name.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-slate-800 truncate">{profile?.name}</p>
+              <p className="text-[10px] font-bold text-indigo-600 truncate uppercase tracking-wider">{profile?.role}</p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={logout} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-white border border-slate-100 text-center">
+            <p className="text-[8px] text-slate-400 uppercase tracking-[0.4em] mb-1 font-black">Powered By</p>
+            <p className="text-[10px] font-black text-indigo-900 tracking-widest uppercase">Fawwaz Creations</p>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <main className="md:pl-64 p-6 md:p-10 min-h-screen">
+        {error && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-700 animate-in fade-in slide-in-from-top-4">
+            <XCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-bold">{error}</p>
+          </div>
+        )}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
           <div>
             <h2 className="text-4xl font-black tracking-tighter text-slate-900 bg-clip-text text-transparent bg-gradient-to-r from-indigo-900 to-slate-800">
@@ -1389,14 +1462,16 @@ export default function App() {
                                   </div>
                                 </DialogContent>
                               </Dialog>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all"
-                                onClick={() => deleteCall(call.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              {isAdmin && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all"
+                                  onClick={() => deleteCall(call.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1677,15 +1752,17 @@ export default function App() {
             <FileText className="w-5 h-5" />
             <span className="text-[10px]">Quotes</span>
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={cn("flex-col h-auto py-2 gap-1 min-w-[64px] snap-start", activeTab === 'analytics' && "text-indigo-600")}
-            onClick={() => setActiveTab('analytics')}
-          >
-            <Clock className="w-5 h-5" />
-            <span className="text-[10px]">Analytics</span>
-          </Button>
+          {isAdmin && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={cn("flex-col h-auto py-2 gap-1 min-w-[64px] snap-start", activeTab === 'analytics' && "text-indigo-600")}
+              onClick={() => setActiveTab('analytics')}
+            >
+              <Clock className="w-5 h-5" />
+              <span className="text-[10px]">Analytics</span>
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -1722,15 +1799,17 @@ export default function App() {
             <CalendarIcon className="w-5 h-5" />
             <span className="text-[10px]">Dates</span>
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={cn("flex-col h-auto py-2 gap-1 min-w-[64px] snap-start", activeTab === 'management' && "text-indigo-600")}
-            onClick={() => setActiveTab('management')}
-          >
-            <Database className="w-5 h-5" />
-            <span className="text-[10px]">Database</span>
-          </Button>
+          {isAdmin && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={cn("flex-col h-auto py-2 gap-1 min-w-[64px] snap-start", activeTab === 'management' && "text-indigo-600")}
+              onClick={() => setActiveTab('management')}
+            >
+              <Database className="w-5 h-5" />
+              <span className="text-[10px]">Database</span>
+            </Button>
+          )}
         </div>
         <div className="text-[8px] text-center text-gray-400 pb-1 uppercase tracking-widest font-bold">
           Powered by Fawwaz Creations

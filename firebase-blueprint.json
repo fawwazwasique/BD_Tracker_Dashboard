@@ -139,6 +139,18 @@
         "userId": { "type": "string" }
       },
       "required": ["fosName", "month", "year", "createdAt", "userId"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account information and role",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Admin", "FOS"] },
+        "name": { "type": "string" }
+      },
+      "required": ["uid", "email", "role", "name"]
     }
   },
   "firestore": {
@@ -146,6 +158,7 @@
     "/quotations/{quotationId}": { "schema": "Quotation", "description": "Global collection of all quotations" },
     "/leads/{leadId}": { "schema": "Lead", "description": "Global collection of all leads" },
     "/visits/{visitId}": { "schema": "Visit", "description": "Global collection of all visits" },
-    "/targets/{targetId}": { "schema": "FosTarget", "description": "Global collection of all FOS targets" }
+    "/targets/{targetId}": { "schema": "FosTarget", "description": "Global collection of all FOS targets" },
+    "/users/{userId}": { "schema": "UserProfile", "description": "User profile collection" }
   }
 }

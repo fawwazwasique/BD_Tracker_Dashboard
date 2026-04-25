@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../hooks/useStore';
 import { Quotation } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   TERRITORIES, BRANCHES, FOS_NAMES, QUOTE_STATUSES, 
   QUOTE_STAGES, SUPPORT_REQUIRED, MONTHS, PART_CATEGORIES 
@@ -24,6 +25,8 @@ import { exportToCSV } from '../lib/csvExport';
 
 export function QuotationsTab() {
   const { quotations, addQuotation, bulkAddQuotations, updateQuotation, deleteQuotation } = useStore();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'Admin';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -103,7 +106,8 @@ export function QuotationsTab() {
 
   const handleBulkUpload = async (data: any[]) => {
     let successCount = 0;
-    const payloads = data.map(row => {
+    let errorCount = 0;
+    const payloads = data.map((row, index) => {
       // Robust header matching
       const getVal = (possibleHeaders: string[]) => {
         const found = Object.keys(row).find(k => 
@@ -116,8 +120,17 @@ export function QuotationsTab() {
       const custName = getVal(['Customer Name', 'CustomerName', 'Company']) || 'Unnamed Customer';
       
       try {
+        const parseDate = (val: any) => {
+          if (!val) return null;
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? null : d.toISOString();
+        };
+
         const stageName = getVal(['Sales Stage', 'SalesStage', 'Stage']) || QUOTE_STAGES[0].name;
         const stage = QUOTE_STAGES.find(s => s.name === stageName) || QUOTE_STAGES[0];
+
+        const qtyVal = parseInt(getVal(['QTY', 'Quantity']) || '1');
+        const amountVal = parseFloat(getVal(['BASIC Amount', 'Amount', 'BasicAmount']) || '0');
 
         successCount++;
         return {
@@ -132,13 +145,13 @@ export function QuotationsTab() {
           emailId: getVal(['Email ID', 'Email', 'EmailID']) || '',
           dgRatingKva: getVal(['DG Rating KVA', 'KVA', 'Rating']) || '',
           engineMake: getVal(['Engine Make', 'Make']) || '',
-          esns: (getVal(['ESN', 'Serial No']) || '').split(',').map((s: string) => s.trim()),
+          esns: (String(getVal(['ESN', 'Serial No']) || '')).split(',').map((s: string) => s.trim()),
           engineModel: getVal(['Engine Model', 'Model']) || '',
           partNo: getVal(['Part No', 'PartNumber']) || '',
           partDesc: getVal(['Part Desc', 'Description']) || '',
           partCategory: getVal(['Part Category', 'Category']) || PART_CATEGORIES[0],
-          qty: parseInt(getVal(['QTY', 'Quantity']) || '1') || 1,
-          basicAmount: parseFloat(getVal(['BASIC Amount', 'Amount', 'BasicAmount']) || '0') || 0,
+          qty: isNaN(qtyVal) ? 1 : qtyVal,
+          basicAmount: isNaN(amountVal) ? 0 : amountVal,
           status: getVal(['Status']) || QUOTE_STATUSES[0],
           salesStage: stage.name,
           stagePercent: stage.percent,
@@ -147,18 +160,22 @@ export function QuotationsTab() {
           supportRequired: getVal(['Support Required', 'Support']) || SUPPORT_REQUIRED[0],
           platform: getVal(['Platform']) || '',
           remarks: getVal(['Remarks', 'Notes']) || '',
-          quotationDate: getVal(['Quotation Date', 'Date']) ? new Date(getVal(['Quotation Date'])).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+          quotationDate: parseDate(getVal(['Quotation Date', 'Date'])) || new Date().toISOString()
         };
       } catch (err) {
-        console.error('Error parsing row:', row, err);
-        successCount--;
+        console.error(`Error parsing row ${index}:`, row, err);
+        errorCount++;
         return null;
       }
     }).filter(Boolean);
 
     if (payloads.length > 0) {
-      await bulkAddQuotations(payloads as any);
-      alert(`Successfully uploaded ${successCount} quotations.`);
+      try {
+        await bulkAddQuotations(payloads as any);
+        alert(`Successfully uploaded ${successCount} quotations.${errorCount > 0 ? ` Skipped ${errorCount} records due to format errors.` : ''}`);
+      } catch (err: any) {
+        alert(`Failed to save to database: ${err.message}. You might have exceeded your daily upload limit (Firestore quota).`);
+      }
     } else {
       alert('No valid records found in the CSV. Please check the column headers (Quotation No and Customer Name are required).');
     }
@@ -534,9 +551,11 @@ export function QuotationsTab() {
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(q)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all">
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteQuotation(q.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" onClick={() => deleteQuotation(q.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

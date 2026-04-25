@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../hooks/useStore';
 import { Lead } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { FOS_NAMES, OPPORTUNITIES, LEAD_TYPES, LEAD_SOURCES } from '../constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ import { exportToCSV } from '../lib/csvExport';
 
 export function LeadsTab() {
   const { leads, addLead, bulkAddLeads, updateLead, deleteLead } = useStore();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'Admin';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -289,9 +292,11 @@ export function LeadsTab() {
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(l)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all">
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteLead(l.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" onClick={() => deleteLead(l.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

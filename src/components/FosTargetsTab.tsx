@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../hooks/useStore';
+import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ const YEARS = ['2024', '2025', '2026', '2027'];
 
 export function FosTargetsTab() {
   const { targets, addTarget, bulkAddTargets, updateTarget, deleteTarget, visits, quotations } = useStore();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'Admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -317,9 +320,11 @@ export function FosTargetsTab() {
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(t)} className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all">
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteTarget(t.id)} className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {isAdmin && (
+                            <Button variant="ghost" size="icon" onClick={() => deleteTarget(t.id)} className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
