@@ -30,13 +30,49 @@ export function AnalyticsTab() {
     if (filteredVisits.length > 0) exportToCSV(filteredVisits, "All_Visits", ["customerName", "contactPerson", "fosName", "visitPurpose", "status", "createdAt", "territory"]);
   };
 
+  // Helper for formatting currency to readable Indian units (Cr/L)
+  const formatCurrency = (value: number) => {
+    if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)} Cr`;
+    if (value >= 100000) return `₹${(value / 100000).toFixed(2)} L`;
+    return `₹${value.toLocaleString()}`;
+  };
+
   // 1. Quotation Status Breakdown
+  const totalQuotationValue = filteredQuotations.reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0);
   const statusData = [
-    { name: 'Open', value: filteredQuotations.filter(q => q.status === 'Open').length },
-    { name: 'Close', value: filteredQuotations.filter(q => q.status === 'Close').length },
-    { name: 'Sale', value: filteredQuotations.filter(q => q.status === 'Sale').length },
-    { name: 'Lost', value: filteredQuotations.filter(q => q.status === 'Lost').length },
-  ].filter(d => d.value > 0);
+    { 
+      name: 'Open', 
+      count: filteredQuotations.filter(q => q.status === 'Open').length,
+      value: filteredQuotations.filter(q => q.status === 'Open').reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0)
+    },
+    { 
+      name: 'Close', 
+      count: filteredQuotations.filter(q => q.status === 'Close').length,
+      value: filteredQuotations.filter(q => q.status === 'Close').reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0)
+    },
+    { 
+      name: 'Sale', 
+      count: filteredQuotations.filter(q => q.status === 'Sale').length,
+      value: filteredQuotations.filter(q => q.status === 'Sale').reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0)
+    },
+    { 
+      name: 'Lost', 
+      count: filteredQuotations.filter(q => q.status === 'Lost').length,
+      value: filteredQuotations.filter(q => q.status === 'Lost').reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0)
+    },
+  ].filter(d => d.count > 0);
+
+  const RADIAN = Math.PI / 180;
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={10} fontWeight="bold">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   // 2. Monthly Quotation Trends
   const monthlyTrends = MONTHS.map(month => {
@@ -116,16 +152,28 @@ export function AnalyticsTab() {
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
-                  outerRadius={80}
+                  outerRadius={100}
                   paddingAngle={5}
                   dataKey="value"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
                 >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {statusData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                   ))}
                 </Pie>
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                  formatter={(value: any, name: string, props: any) => {
+                    const { count } = props.payload;
+                    return [
+                      <div key={name} className="flex flex-col gap-1">
+                        <span className="font-bold text-slate-800">{formatCurrency(value)}</span>
+                        <span className="text-xs text-slate-500">{count} Quotations</span>
+                      </div>,
+                      name
+                    ];
+                  }}
                 />
                 <Legend iconType="circle" />
               </PieChart>
@@ -149,11 +197,16 @@ export function AnalyticsTab() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600, fill: '#64748b'}} dy={10} />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fontSize: 10, fontWeight: 600, fill: '#64748b'}} 
+                  tickFormatter={(val) => val === 0 ? '0' : (val >= 10000000 ? `${(val/10000000).toFixed(0)}Cr` : `${(val/100000).toFixed(0)}L`)}
+                />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                  formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Amount']}
+                  formatter={(value: any) => [formatCurrency(value), 'Expected Closure']}
                 />
                 <Area type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
               </AreaChart>
@@ -186,7 +239,7 @@ export function AnalyticsTab() {
           </CardContent>
         </Card>
 
-        {/* Lead Source Breakdown */}
+        {/* Lead Source Distribution */}
         <Card className="border-none shadow-lg shadow-slate-200/40 bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Lead Source Distribution</CardTitle>
@@ -194,42 +247,47 @@ export function AnalyticsTab() {
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={leadSourceData}>
-                <PolarGrid stroke="#f1f5f9" />
-                <PolarAngleAxis dataKey="name" tick={{fontSize: 10, fontWeight: 600}} />
-                <PolarRadiusAxis />
-                <Radar
-                  name="Leads"
-                  dataKey="count"
-                  stroke="#3b82f6"
-                  fill="#3b82f6"
-                  fillOpacity={0.5}
-                />
+              <BarChart data={leadSourceData} layout="vertical" margin={{ left: 40, right: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600, fill: '#64748b'}} />
                 <Tooltip 
+                  cursor={{fill: '#f8fafc'}}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                  formatter={(value: any) => {
+                    const total = leadSourceData.reduce((sum, d) => sum + d.count, 0);
+                    const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return [`${value} Leads (${percent}%)`, 'Contribution'];
+                  }}
                 />
-              </RadarChart>
+                <Bar dataKey="count" name="Leads" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Financial Value Tracking */}
+        {/* Sales Stage Analysis */}
         <Card className="border-none shadow-lg shadow-slate-200/40 bg-white/80 backdrop-blur-xl rounded-2xl overflow-hidden lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Sales Stage Distribution</CardTitle>
-            <CardDescription className="font-medium">Number of quotations at each sales stage</CardDescription>
+            <CardTitle className="text-lg font-bold">Sales Stage Analysis</CardTitle>
+            <CardDescription className="font-medium">Pipeline volume by stage</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={stageData}>
+              <ComposedChart data={stageData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600, fill: '#64748b'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 600, fill: '#64748b'}} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                  formatter={(value: any) => {
+                    const total = stageData.reduce((sum, d) => sum + d.value, 0);
+                    const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return [`${value} Quotations (${percent}%)`, 'Stage Volume'];
+                  }}
                 />
                 <Bar dataKey="value" name="Quotations" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
-                <Line type="monotone" dataKey="value" stroke="#ec4899" strokeWidth={2} dot={{r: 4, fill: '#ec4899'}} />
+                <Line type="monotone" dataKey="value" stroke="#ec4899" strokeWidth={3} dot={{r: 6, fill: '#ec4899', strokeWidth: 2, stroke: '#fff'}} />
               </ComposedChart>
             </ResponsiveContainer>
           </CardContent>

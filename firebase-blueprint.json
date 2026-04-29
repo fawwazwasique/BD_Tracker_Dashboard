@@ -11,6 +11,7 @@
         "phoneNumber": { "type": "string" },
         "email": { "type": "string" },
         "location": { "type": "string" },
+        "territory": { "type": "string" },
         "dgSetDetails": {
           "type": "object",
           "properties": {
@@ -26,6 +27,7 @@
         "followUpType": { "type": "string" },
         "callType": { "type": "string" },
         "status": { "type": "string" },
+        "likelyMonthOfClosure": { "type": "string" },
         "remarks": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "followUpDate": { "type": "string" },
@@ -45,7 +47,6 @@
         "customerName": { "type": "string" },
         "address": { "type": "string" },
         "territory": { "type": "string" },
-        "branch": { "type": "string" },
         "leadOwner": { "type": "string" },
         "contactPerson": { "type": "string" },
         "mobileNumber": { "type": "string" },
@@ -82,10 +83,12 @@
         "contactPerson": { "type": "string" },
         "mobileNumber": { "type": "string" },
         "emailId": { "type": "string" },
+        "territory": { "type": "string" },
         "leadOwner": { "type": "string" },
         "opportunity": { "type": "string" },
         "leadType": { "type": "string" },
         "leadSource": { "type": "string" },
+        "likelyMonthOfClosure": { "type": "string" },
         "remarks": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "userId": { "type": "string" }
@@ -103,6 +106,7 @@
         "phoneNumber": { "type": "string" },
         "email": { "type": "string" },
         "location": { "type": "string" },
+        "territory": { "type": "string" },
         "dgSetDetails": {
           "type": "object",
           "properties": {
@@ -115,6 +119,7 @@
         "visitPurpose": { "type": "string" },
         "visitType": { "type": "string" },
         "status": { "type": "string" },
+        "likelyMonthOfClosure": { "type": "string" },
         "remarks": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "userId": { "type": "string" }
