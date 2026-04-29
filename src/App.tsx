@@ -59,7 +59,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format, parseISO, startOfWeek, endOfWeek, addWeeks, isWithinInterval, isBefore, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CALL_TYPES, CALL_STATUSES, ENGINE_MAKES, FOLLOW_UP_TYPES, FOS_NAMES, PART_CATEGORIES, SUPPORT_REQUIRED } from './constants';
+import { TERRITORIES, CALL_TYPES, CALL_STATUSES, ENGINE_MAKES, FOLLOW_UP_TYPES, FOS_NAMES, PART_CATEGORIES, SUPPORT_REQUIRED, MONTHS } from './constants';
 import { CallType, CallStatus } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -92,12 +92,17 @@ export default function App() {
   const [callsPage, setCallsPage] = useState(1);
   const [dashboardCategoryFilter, setDashboardCategoryFilter] = useState<string>('all');
   const [dashboardSupportFilter, setDashboardSupportFilter] = useState<string>('all');
+  const [dashboardTerritoryFilter, setDashboardTerritoryFilter] = useState<string>('all');
 
   const handleExportDashboardData = () => {
-    const filteredDashboardCalls = calls.filter(c => dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter);
+    const filteredDashboardCalls = calls.filter(c => 
+      (dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter) &&
+      (dashboardTerritoryFilter === 'all' || c.territory === dashboardTerritoryFilter)
+    );
     const filteredDashboardQuotes = quotations.filter(q => 
       (dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter) &&
-      (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter)
+      (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter) &&
+      (dashboardTerritoryFilter === 'all' || q.territory === dashboardTerritoryFilter)
     );
 
     if (filteredDashboardCalls.length > 0) {
@@ -106,12 +111,12 @@ export default function App() {
         esns: Array.isArray(c.dgSetDetails?.esns) ? c.dgSetDetails.esns.join('; ') : (c.dgSetDetails?.esn || '')
       }));
       exportToCSV(exportData, "Dashboard_Calls", [
-        "customerName", "contactPerson", "phoneNumber", "email", "location", "qty", "esns", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt", "followUpDate", "appointmentDate", "appointmentTime"
+        "customerName", "contactPerson", "phoneNumber", "email", "location", "territory", "qty", "esns", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "likelyMonthOfClosure", "remarks", "createdAt", "followUpDate", "appointmentDate", "appointmentTime"
       ]);
     }
     if (filteredDashboardQuotes.length > 0) {
       exportToCSV(filteredDashboardQuotes, "Dashboard_Quotations", [
-        "quotationNo", "quotationDate", "customerName", "address", "territory", "branch", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esn", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "supportRequired", "platform", "remarks", "createdAt"
+        "quotationNo", "quotationDate", "customerName", "address", "territory", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esn", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "likelyMonthOfClosure", "supportRequired", "platform", "remarks", "createdAt"
       ]);
     }
   };
@@ -122,7 +127,7 @@ export default function App() {
       esns: Array.isArray(c.dgSetDetails?.esns) ? c.dgSetDetails.esns.join('; ') : (c.dgSetDetails?.esn || '')
     }));
     exportToCSV(exportData, "Calls_Management", [
-      "customerName", "contactPerson", "phoneNumber", "email", "location", "qty", "esns", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "remarks", "createdAt"
+      "customerName", "contactPerson", "phoneNumber", "email", "location", "territory", "qty", "esns", "partNo", "partDesc", "partCategory", "fosName", "followUpType", "callType", "status", "likelyMonthOfClosure", "remarks", "createdAt"
     ]);
   };
 
@@ -134,6 +139,7 @@ export default function App() {
     phoneNumber: '',
     email: '',
     location: '',
+    territory: '',
     dgSetDetails: {
       kva: '',
       engineMake: 'Cummins',
@@ -202,6 +208,7 @@ export default function App() {
       phoneNumber: '',
       email: '',
       location: '',
+      territory: '',
       dgSetDetails: { kva: '', engineMake: 'Cummins', esns: [''] },
       qty: 1,
       partNo: '',
@@ -211,6 +218,7 @@ export default function App() {
       followUpType: '',
       callType: 'Warm Call',
       status: 'Pending',
+      likelyMonthOfClosure: '',
       remarks: '',
       followUpDate: undefined,
       appointmentDate: undefined,
@@ -226,6 +234,7 @@ export default function App() {
       phoneNumber: call.phoneNumber,
       email: call.email,
       location: call.location,
+      territory: call.territory || '',
       dgSetDetails: { 
         kva: call.dgSetDetails?.kva || '',
         engineMake: call.dgSetDetails?.engineMake || 'Cummins',
@@ -239,6 +248,7 @@ export default function App() {
       followUpType: call.followUpType || '',
       callType: call.callType,
       status: call.status,
+      likelyMonthOfClosure: call.likelyMonthOfClosure || '',
       remarks: call.remarks,
       followUpDate: call.followUpDate ? parseISO(call.followUpDate) : undefined,
       appointmentDate: call.appointmentDate ? parseISO(call.appointmentDate) : undefined,
@@ -300,6 +310,7 @@ export default function App() {
             engineMake: getVal(['Engine Make', 'Make']) || 'Cummins',
             esns: (String(getVal(['ESN', 'Engine Serial No']) || '')).split(',').map((s: string) => s.trim())
           },
+          territory: getVal(['Territory', 'Branch']) || '',
           qty: isNaN(qtyVal) ? 1 : qtyVal,
           partNo: getVal(['Part No', 'PartNumber']) || '',
           partDesc: getVal(['Part Desc', 'Description']) || '',
@@ -308,6 +319,7 @@ export default function App() {
           followUpType: getVal(['Follow up Type', 'Type']) || '',
           callType: (getVal(['Call Type']) as CallType) || 'Warm Call',
           status: (getVal(['Status']) as CallStatus) || 'Pending',
+          likelyMonthOfClosure: getVal(['Likely Month Of Closure', 'LikelyMonthOfClosure', 'ClosureMonth']) || '',
           remarks: getVal(['Remarks', 'Notes']) || '',
           followUpDate: parseDate(getVal(['Follow-up Date', 'Followup Date'])),
           appointmentDate: parseDate(getVal(['Appointment Date'])),
@@ -340,31 +352,45 @@ export default function App() {
     const matchesCategory = activeTab === 'dashboard' 
       ? (dashboardCategoryFilter === 'all' || call.partCategory === dashboardCategoryFilter)
       : true;
-    return matchesSearch && matchesCategory;
+    const matchesTerritory = activeTab === 'dashboard'
+      ? (dashboardTerritoryFilter === 'all' || call.territory === dashboardTerritoryFilter)
+      : true;
+    return matchesSearch && matchesCategory && matchesTerritory;
   });
 
   const dashboardStats = {
-    totalCalls: calls.filter(c => dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter).length,
+    totalCalls: calls.filter(c => 
+      (dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter) &&
+      (dashboardTerritoryFilter === 'all' || c.territory === dashboardTerritoryFilter)
+    ).length,
     todayFollowUps: calls.filter(c => 
       (dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter) &&
+      (dashboardTerritoryFilter === 'all' || c.territory === dashboardTerritoryFilter) &&
       c.followUpDate && isSameDay(parseISO(c.followUpDate), new Date())
     ).length,
     meetingAppointments: calls.filter(c => 
       (dashboardCategoryFilter === 'all' || c.partCategory === dashboardCategoryFilter) &&
+      (dashboardTerritoryFilter === 'all' || c.territory === dashboardTerritoryFilter) &&
       c.appointmentDate && parseISO(c.appointmentDate) >= new Date()
     ).length,
     totalQuotations: quotations.filter(q => 
       (dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter) &&
-      (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter)
+      (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter) &&
+      (dashboardTerritoryFilter === 'all' || q.territory === dashboardTerritoryFilter)
     ).length,
     totalQuotationValue: quotations
       .filter(q => 
         (dashboardCategoryFilter === 'all' || q.partCategory === dashboardCategoryFilter) &&
-        (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter)
+        (dashboardSupportFilter === 'all' || q.supportRequired === dashboardSupportFilter) &&
+        (dashboardTerritoryFilter === 'all' || q.territory === dashboardTerritoryFilter)
       )
       .reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0),
-    totalLeads: leads.length, // No partCategory in leads
-    totalVisits: visits.length, // No partCategory in visits
+    totalLeads: leads.filter(l => 
+      (dashboardTerritoryFilter === 'all' || l.territory === dashboardTerritoryFilter)
+    ).length,
+    totalVisits: visits.filter(v => 
+      (dashboardTerritoryFilter === 'all' || v.territory === dashboardTerritoryFilter)
+    ).length,
   };
 
   const totalCallsPages = Math.ceil(filteredCalls.length / callsPerPage);
@@ -618,9 +644,9 @@ export default function App() {
                 title="Calls" 
                 templateHeaders={[
                   'Customer Name', 'Contact Person', 'Phone Number', 
-                  'Email', 'Location', 'KVA Rating', 'Engine Make', 'ESN', 
+                  'Email', 'Location', 'Territory', 'KVA Rating', 'Engine Make', 'ESN', 
                   'Part No', 'Part Desc', 'Part Category', 'FOS Name', 'Follow up Type',
-                  'Call Type', 'Status', 'Remarks', 'Follow-up Date', 'Appointment Date', 'Appointment Time'
+                  'Call Type', 'Status', 'Likely Month Of Closure', 'Remarks', 'Follow-up Date', 'Appointment Date', 'Appointment Time'
                 ]}
                 onUpload={handleBulkUploadCalls}
               />
@@ -679,6 +705,22 @@ export default function App() {
                       value={formData.location}
                       onChange={e => setFormData({...formData, location: e.target.value})}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="territory" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Territory</Label>
+                    <Select 
+                      value={formData.territory}
+                      onValueChange={val => setFormData({...formData, territory: val})}
+                    >
+                      <SelectTrigger className="bg-slate-50 border-slate-200 focus:ring-indigo-500/20 rounded-xl">
+                        <SelectValue placeholder="Select Territory" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                        {TERRITORIES.map(t => (
+                          <SelectItem key={t} value={t} className="rounded-lg">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email</Label>
@@ -1005,6 +1047,24 @@ export default function App() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Likely Month Of Closure</Label>
+                  <Select 
+                    value={formData.likelyMonthOfClosure}
+                    onValueChange={val => setFormData({...formData, likelyMonthOfClosure: val})}
+                  >
+                    <SelectTrigger className="bg-slate-50 border-slate-200 focus:ring-indigo-500/20 rounded-xl">
+                      <SelectValue placeholder="Select Month" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      <SelectItem value="None" className="rounded-lg">None</SelectItem>
+                      {MONTHS.map(m => (
+                        <SelectItem key={m} value={m} className="rounded-lg">{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="remarks" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Remarks</Label>
                   <Input 
                     id="remarks" 
@@ -1050,6 +1110,19 @@ export default function App() {
                   >
                     <Download className="w-4 h-4" /> Export Data
                   </Button>
+                  <div className="w-full md:w-64">
+                    <Select value={dashboardTerritoryFilter} onValueChange={setDashboardTerritoryFilter}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white focus:ring-white/20 rounded-xl hover:bg-white/20 transition-all font-bold">
+                        <SelectValue placeholder="Territory Filter" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                        <SelectItem value="all" className="rounded-lg">All Territories</SelectItem>
+                        {TERRITORIES.map(t => (
+                          <SelectItem key={t} value={t} className="rounded-lg">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="w-full md:w-64">
                     <Select value={dashboardCategoryFilter} onValueChange={setDashboardCategoryFilter}>
                       <SelectTrigger className="bg-white/10 border-white/20 text-white focus:ring-white/20 rounded-xl hover:bg-white/20 transition-all font-bold">
@@ -1266,13 +1339,23 @@ export default function App() {
                   />
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                  <Button variant="outline" className="gap-2 flex-1 md:flex-none rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600">
-                    <Filter className="w-4 h-4" /> Filter
-                  </Button>
+                  <div className="w-full md:w-48">
+                    <Select value={dashboardTerritoryFilter} onValueChange={setDashboardTerritoryFilter}>
+                      <SelectTrigger className="bg-indigo-50/50 border-none focus:ring-indigo-500/20 rounded-xl text-slate-700">
+                        <SelectValue placeholder="Territory" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                        <SelectItem value="all" className="rounded-lg">All Territories</SelectItem>
+                        {TERRITORIES.map(t => (
+                          <SelectItem key={t} value={t} className="rounded-lg">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button 
                     variant="outline" 
                     onClick={handleExportCallsData}
-                    className="gap-2 flex-1 md:flex-none rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600"
+                    className="gap-2 flex-1 md:flex-none rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-bold"
                   >
                     <Download className="w-4 h-4" /> Export CSV
                   </Button>

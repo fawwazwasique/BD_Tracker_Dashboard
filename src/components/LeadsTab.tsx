@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../hooks/useStore';
 import { Lead } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { FOS_NAMES, OPPORTUNITIES, LEAD_TYPES, LEAD_SOURCES } from '../constants';
+import { FOS_NAMES, OPPORTUNITIES, LEAD_TYPES, LEAD_SOURCES, TERRITORIES, MONTHS } from '../constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ export function LeadsTab() {
   const isAdmin = profile?.role === 'Admin';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [territoryFilter, setTerritoryFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -39,6 +40,8 @@ export function LeadsTab() {
     opportunity: OPPORTUNITIES[0],
     leadType: LEAD_TYPES[0],
     leadSource: LEAD_SOURCES[0],
+    territory: '',
+    likelyMonthOfClosure: '',
     remarks: ''
   };
 
@@ -86,10 +89,12 @@ export function LeadsTab() {
           contactPerson: getVal(['Contact Person', 'ContactPerson']) || '',
           mobileNumber: getVal(['Mobile Number', 'Mobile', 'Phone']) || '',
           emailId: getVal(['Email ID', 'Email', 'EmailID']) || '',
+          territory: getVal(['Territory', 'Branch']) || '',
           leadOwner: getVal(['FOS Name', 'Lead Owner', 'Owner']) || FOS_NAMES[0],
           opportunity: getVal(['Opportunity']) || OPPORTUNITIES[0],
           leadType: getVal(['Lead Type', 'Type']) || LEAD_TYPES[0],
           leadSource: getVal(['Lead Source', 'Source']) || LEAD_SOURCES[0],
+          likelyMonthOfClosure: getVal(['Likely Month Of Closure', 'LikelyMonthOfClosure', 'ClosureMonth']) || '',
           remarks: getVal(['Remarks', 'Notes']) || ''
         };
       } catch (err) {
@@ -108,8 +113,9 @@ export function LeadsTab() {
   };
 
   const filtered = leads.filter(l => 
-    l.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
+    (l.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (territoryFilter === 'all' || l.territory === territoryFilter)
   );
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -117,21 +123,36 @@ export function LeadsTab() {
 
   const handleExport = () => {
     exportToCSV(filtered, "Leads", [
-      "customerName", "contactPerson", "mobileNumber", "emailId", "leadOwner", "opportunity", "leadType", "leadSource", "remarks", "createdAt"
+      "customerName", "contactPerson", "mobileNumber", "emailId", "territory", "leadOwner", "opportunity", "leadType", "leadSource", "likelyMonthOfClosure", "remarks", "createdAt"
     ]);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
-          <Input 
-            placeholder="Search leads..." 
-            className="pl-10 bg-indigo-50/50 border-none focus-visible:ring-indigo-500/20 text-slate-700 placeholder:text-slate-400 rounded-xl"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+            <Input 
+              placeholder="Search leads..." 
+              className="pl-10 bg-indigo-50/50 border-none focus-visible:ring-indigo-500/20 text-slate-700 placeholder:text-slate-400 rounded-xl w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="w-full md:w-48">
+            <Select value={territoryFilter} onValueChange={setTerritoryFilter}>
+              <SelectTrigger className="bg-indigo-50/50 border-none focus:ring-indigo-500/20 rounded-xl text-slate-700">
+                <SelectValue placeholder="Territory Filter" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                <SelectItem value="all" className="rounded-lg">All Territories</SelectItem>
+                {TERRITORIES.map(t => (
+                  <SelectItem key={t} value={t} className="rounded-lg">{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
@@ -145,8 +166,8 @@ export function LeadsTab() {
           <BulkUploadDialog 
             title="Leads" 
             templateHeaders={[
-              'Customer Name', 'Contact Person', 'Mobile Number', 'Email ID', 
-              'FOS Name', 'Opportunity', 'Lead Type', 'Lead Source', 'Remarks'
+              'Customer Name', 'Contact Person', 'Mobile Number', 'Email ID', 'Territory',
+              'FOS Name', 'Opportunity', 'Lead Type', 'Lead Source', 'Likely Month Of Closure', 'Remarks'
             ]}
             onUpload={handleBulkUpload}
           />
@@ -225,6 +246,23 @@ export function LeadsTab() {
                   <Select value={formData.leadSource} onValueChange={v => setFormData({...formData, leadSource: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{LEAD_SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Territory</Label>
+                  <Select value={formData.territory} onValueChange={v => setFormData({...formData, territory: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select Territory" /></SelectTrigger>
+                    <SelectContent>{TERRITORIES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Likely Month Of Closure</Label>
+                  <Select value={formData.likelyMonthOfClosure} onValueChange={v => setFormData({...formData, likelyMonthOfClosure: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select Month" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="None">None</SelectItem>
+                      {MONTHS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                 </div>
               </div>

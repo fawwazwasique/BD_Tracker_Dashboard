@@ -7,52 +7,60 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Filter, Download } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
-import { FOS_NAMES, LEAD_SOURCES, MONTHS } from '../constants';
+import { FOS_NAMES, LEAD_SOURCES, MONTHS, TERRITORIES } from '../constants';
 import { exportToCSV } from '../lib/csvExport';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#3b82f6', '#06b6d4', '#ec4899', '#f59e0b', '#10b981'];
 
 export function AnalyticsTab() {
-  const { quotations, leads, visits } = useStore();
+  const { calls, quotations, leads, visits } = useStore();
+  const [territoryFilter, setTerritoryFilter] = React.useState<string>('all');
+
+  const filteredQuotations = quotations.filter(q => territoryFilter === 'all' || q.territory === territoryFilter);
+  const filteredLeads = leads.filter(l => territoryFilter === 'all' || l.territory === territoryFilter);
+  const filteredVisits = visits.filter(v => territoryFilter === 'all' || v.territory === territoryFilter);
+  const filteredCalls = calls.filter(c => territoryFilter === 'all' || c.territory === territoryFilter);
 
   const handleExportAll = () => {
-    if (quotations.length > 0) exportToCSV(quotations, "All_Quotations", ["quotationNo", "customerName", "basicAmount", "status", "salesStage", "leadOwner", "createdAt"]);
-    if (leads.length > 0) exportToCSV(leads, "All_Leads", ["customerName", "contactPerson", "mobileNumber", "leadType", "leadSource", "createdAt"]);
-    if (visits.length > 0) exportToCSV(visits, "All_Visits", ["customerName", "contactPerson", "fosName", "visitPurpose", "status", "createdAt"]);
+    if (filteredQuotations.length > 0) exportToCSV(filteredQuotations, "All_Quotations", ["quotationNo", "customerName", "basicAmount", "status", "salesStage", "leadOwner", "createdAt", "territory"]);
+    if (filteredLeads.length > 0) exportToCSV(filteredLeads, "All_Leads", ["customerName", "contactPerson", "mobileNumber", "leadType", "leadSource", "createdAt", "territory"]);
+    if (filteredVisits.length > 0) exportToCSV(filteredVisits, "All_Visits", ["customerName", "contactPerson", "fosName", "visitPurpose", "status", "createdAt", "territory"]);
   };
 
   // 1. Quotation Status Breakdown
   const statusData = [
-    { name: 'Open', value: quotations.filter(q => q.status === 'Open').length },
-    { name: 'Close', value: quotations.filter(q => q.status === 'Close').length },
-    { name: 'Sale', value: quotations.filter(q => q.status === 'Sale').length },
-    { name: 'Lost', value: quotations.filter(q => q.status === 'Lost').length },
+    { name: 'Open', value: filteredQuotations.filter(q => q.status === 'Open').length },
+    { name: 'Close', value: filteredQuotations.filter(q => q.status === 'Close').length },
+    { name: 'Sale', value: filteredQuotations.filter(q => q.status === 'Sale').length },
+    { name: 'Lost', value: filteredQuotations.filter(q => q.status === 'Lost').length },
   ].filter(d => d.value > 0);
 
   // 2. Monthly Quotation Trends
   const monthlyTrends = MONTHS.map(month => {
-    const monthQuotes = quotations.filter(q => q.likelyMonthOfClosure === month);
+    const monthQuotes = filteredQuotations.filter(q => q.likelyMonthOfClosure === month);
     return {
       name: month.substring(0, 3),
-      amount: monthQuotes.reduce((sum, q) => sum + q.basicAmount, 0),
+      amount: monthQuotes.reduce((sum, q) => sum + (Number(q.basicAmount) || 0), 0),
       count: monthQuotes.length
     };
   });
 
-  // 3. FOS Performance (by number of quotations)
+  // 3. FOS Performance
   const fosPerformance = FOS_NAMES.map(name => {
     return {
       name,
-      quotes: quotations.filter(q => q.leadOwner === name).length,
-      visits: visits.filter(v => v.fosName === name).length
+      quotes: filteredQuotations.filter(q => q.leadOwner === name).length,
+      visits: filteredVisits.filter(v => v.fosName === name).length,
+      calls: filteredCalls.filter(c => c.fosName === name).length
     };
-  }).filter(d => d.quotes > 0 || d.visits > 0);
+  }).filter(d => d.quotes > 0 || d.visits > 0 || d.calls > 0);
 
   // 4. Lead Source Conversion
   const leadSourceData = LEAD_SOURCES.map(source => {
-    const sourceLeads = leads.filter(l => l.leadSource === source);
+    const sourceLeads = filteredLeads.filter(l => l.leadSource === source);
     return {
       name: source,
       count: sourceLeads.length
@@ -61,17 +69,31 @@ export function AnalyticsTab() {
 
   // 5. Stage Distribution
   const stageData = [
-    { name: 'Quote Sub', value: quotations.filter(q => q.stagePercent === 10).length },
-    { name: '1st Level', value: quotations.filter(q => q.stagePercent === 20).length },
-    { name: '2nd Level', value: quotations.filter(q => q.stagePercent === 50).length },
-    { name: 'Approval', value: quotations.filter(q => q.stagePercent === 75).length },
-    { name: 'P.O Issue', value: quotations.filter(q => q.stagePercent === 90).length },
-    { name: 'Closure', value: quotations.filter(q => q.stagePercent === 100).length },
+    { name: 'Quote Sub', value: filteredQuotations.filter(q => q.stagePercent === 10).length },
+    { name: '1st Level', value: filteredQuotations.filter(q => q.stagePercent === 20).length },
+    { name: '2nd Level', value: filteredQuotations.filter(q => q.stagePercent === 50).length },
+    { name: 'Approval', value: filteredQuotations.filter(q => q.stagePercent === 75).length },
+    { name: 'P.O Issue', value: filteredQuotations.filter(q => q.stagePercent === 90).length },
+    { name: 'Closure', value: filteredQuotations.filter(q => q.stagePercent === 100).length },
   ];
 
   return (
     <div className="space-y-8 pb-12">
-      <div className="flex justify-end">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100">
+        <div className="w-full md:w-64">
+          <Select value={territoryFilter} onValueChange={setTerritoryFilter}>
+            <SelectTrigger className="bg-indigo-50/50 border-none focus:ring-indigo-500/20 rounded-xl text-slate-700 font-bold">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Territory Filter" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+              <SelectItem value="all" className="rounded-lg">All Territories</SelectItem>
+              {TERRITORIES.map(t => (
+                <SelectItem key={t} value={t} className="rounded-lg">{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button 
           onClick={handleExportAll}
           className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 rounded-xl shadow-lg shadow-indigo-500/20 font-bold"
@@ -158,6 +180,7 @@ export function AnalyticsTab() {
                 <Legend />
                 <Bar dataKey="quotes" name="Quotations" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={12} />
                 <Bar dataKey="visits" name="Visits" fill="#ec4899" radius={[0, 4, 4, 0]} barSize={12} />
+                <Bar dataKey="calls" name="Calls" fill="#10b981" radius={[0, 4, 4, 0]} barSize={12} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

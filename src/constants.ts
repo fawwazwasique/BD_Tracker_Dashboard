@@ -33,15 +33,11 @@ export const TERRITORIES = [
   'Bangalore',
   'Mangalore',
   'Mysore',
-  'North Karnataka'
-];
-
-export const BRANCHES = [
+  'North Karnataka',
   'Byappanhalli',
   'Peenya',
   'JC Road',
   'Tumkur',
-  'Mangalore',
   'Ankola',
   'Chitradurga',
   'Shimoga',
@@ -51,11 +47,9 @@ export const BRANCHES = [
   'Hubli',
   'Vijayapur',
   'Hosur',
-  'Mysore',
   'Attibele',
   'Ballari',
-  'Hassan',
-  'Bangalore'
+  'Hassan'
 ];
 
 export const FOS_NAMES = [

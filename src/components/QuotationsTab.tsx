@@ -3,7 +3,7 @@ import { useStore } from '../hooks/useStore';
 import { Quotation } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  TERRITORIES, BRANCHES, FOS_NAMES, QUOTE_STATUSES, 
+  TERRITORIES, FOS_NAMES, QUOTE_STATUSES, 
   QUOTE_STAGES, SUPPORT_REQUIRED, MONTHS, PART_CATEGORIES 
 } from '../constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +31,7 @@ export function QuotationsTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [supportFilter, setSupportFilter] = useState<string>('all');
+  const [territoryFilter, setTerritoryFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -40,7 +41,6 @@ export function QuotationsTab() {
     customerName: '',
     address: '',
     territory: TERRITORIES[0],
-    branch: BRANCHES[0],
     leadOwner: FOS_NAMES[0],
     contactPerson: '',
     mobileNumber: '',
@@ -137,8 +137,7 @@ export function QuotationsTab() {
           quotationNo: quotNo,
           customerName: custName,
           address: getVal(['Address', 'Location']) || '',
-          territory: getVal(['Territory']) || TERRITORIES[0],
-          branch: getVal(['Branch']) || BRANCHES[0],
+          territory: getVal(['Territory', 'Branch']) || TERRITORIES[0],
           leadOwner: getVal(['FOS Name', 'Lead Owner', 'Owner']) || FOS_NAMES[0],
           contactPerson: getVal(['Contact Person', 'ContactPerson']) || '',
           mobileNumber: getVal(['Mobile Number', 'Mobile', 'Phone']) || '',
@@ -186,7 +185,8 @@ export function QuotationsTab() {
                          q.quotationNo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || q.partCategory === categoryFilter;
     const matchesSupport = supportFilter === 'all' || q.supportRequired === supportFilter;
-    return matchesSearch && matchesCategory && matchesSupport;
+    const matchesTerritory = territoryFilter === 'all' || q.territory === territoryFilter;
+    return matchesSearch && matchesCategory && matchesSupport && matchesTerritory;
   });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -198,7 +198,7 @@ export function QuotationsTab() {
       esns: Array.isArray(q.esns) ? q.esns.join('; ') : (q.esn || '')
     }));
     exportToCSV(exportData, "Quotations", [
-      "quotationNo", "quotationDate", "customerName", "address", "territory", "branch", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esns", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "supportRequired", "platform", "remarks", "createdAt"
+      "quotationNo", "quotationDate", "customerName", "address", "territory", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esns", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "likelyMonthOfClosure", "supportRequired", "platform", "remarks", "createdAt"
     ]);
   };
 
@@ -214,6 +214,19 @@ export function QuotationsTab() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          <div className="w-full md:w-48">
+            <Select value={territoryFilter} onValueChange={setTerritoryFilter}>
+              <SelectTrigger className="bg-indigo-50/50 border-none focus:ring-indigo-500/20 rounded-xl text-slate-700">
+                <SelectValue placeholder="Territory Filter" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                <SelectItem value="all" className="rounded-lg">All Territories</SelectItem>
+                {TERRITORIES.map(t => (
+                  <SelectItem key={t} value={t} className="rounded-lg">{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="w-full md:w-48">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -254,7 +267,7 @@ export function QuotationsTab() {
           <BulkUploadDialog 
             title="Quotations" 
             templateHeaders={[
-              'Quotation No', 'Quotation Date', 'Customer Name', 'Address', 'Territory', 'Branch', 
+              'Quotation No', 'Quotation Date', 'Customer Name', 'Address', 'Territory', 
               'FOS Name', 'Contact Person', 'Mobile Number', 'Email ID', 
               'DG Rating KVA', 'Engine Make', 'ESN', 'Engine Model', 
               'Part No', 'Part Desc', 'Part Category', 'QTY', 
@@ -305,13 +318,6 @@ export function QuotationsTab() {
                   <Select value={formData.territory} onValueChange={v => setFormData({...formData, territory: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{TERRITORIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Branch</Label>
-                  <Select value={formData.branch} onValueChange={v => setFormData({...formData, branch: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -530,7 +536,7 @@ export function QuotationsTab() {
                     <TableCell className="font-bold text-slate-800">{q.quotationNo}</TableCell>
                     <TableCell>
                       <div className="font-bold text-slate-800">{q.customerName}</div>
-                      <div className="text-[11px] font-medium text-slate-500 mt-0.5">{q.territory} • {q.branch}</div>
+                      <div className="text-[11px] font-medium text-slate-500 mt-0.5">{q.territory}</div>
                     </TableCell>
                     <TableCell>
                       <div className="text-[10px] font-bold text-slate-600 max-w-[100px] truncate">

@@ -18,6 +18,7 @@ export interface Call {
   phoneNumber: string;
   email: string;
   location: string;
+  territory?: string;
   dgSetDetails: {
     kva: string;
     engineMake: string;
@@ -31,6 +32,7 @@ export interface Call {
   followUpType: string;
   callType: CallType;
   status: CallStatus;
+  likelyMonthOfClosure?: string;
   remarks: string;
   createdAt: string;
   followUpDate?: string;
@@ -44,7 +46,6 @@ export interface Quotation {
   customerName: string;
   address: string;
   territory: string;
-  branch: string;
   leadOwner: string;
   contactPerson: string;
   mobileNumber: string;
@@ -76,10 +77,12 @@ export interface Lead {
   contactPerson: string;
   mobileNumber: string;
   emailId: string;
+  territory?: string;
   leadOwner: string;
   opportunity: string;
   leadType: string;
   leadSource: string;
+  likelyMonthOfClosure?: string;
   remarks: string;
   createdAt: string;
 }
@@ -91,6 +94,7 @@ export interface Visit {
   phoneNumber: string;
   email: string;
   location: string;
+  territory?: string;
   dgSetDetails: {
     kva: string;
     engineMake: string;
@@ -100,6 +104,7 @@ export interface Visit {
   visitPurpose: string;
   visitType: string;
   status: string;
+  likelyMonthOfClosure?: string;
   remarks: string;
   createdAt: string;
 }
