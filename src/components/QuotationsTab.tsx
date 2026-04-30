@@ -61,6 +61,7 @@ export function QuotationsTab() {
     likelyMonthOfClosure: MONTHS[new Date().getMonth()],
     supportRequired: SUPPORT_REQUIRED[0],
     platform: '',
+    lostReason: '',
     remarks: '',
     quotationDate: new Date().toISOString().split('T')[0]
   };
@@ -158,6 +159,7 @@ export function QuotationsTab() {
           likelyMonthOfClosure: getVal(['Likely Month Of Closure', 'Closure Month']) || MONTHS[new Date().getMonth()],
           supportRequired: getVal(['Support Required', 'Support']) || SUPPORT_REQUIRED[0],
           platform: getVal(['Platform']) || '',
+          lostReason: getVal(['Lost Reason', 'LostReason']) || '',
           remarks: getVal(['Remarks', 'Notes']) || '',
           quotationDate: parseDate(getVal(['Quotation Date', 'Date'])) || new Date().toISOString()
         };
@@ -198,7 +200,7 @@ export function QuotationsTab() {
       esns: Array.isArray(q.esns) ? q.esns.join('; ') : (q.esn || '')
     }));
     exportToCSV(exportData, "Quotations", [
-      "quotationNo", "quotationDate", "customerName", "address", "territory", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esns", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "salesStage", "stagePercent", "likelyMonthOfClosure", "supportRequired", "platform", "remarks", "createdAt"
+      "quotationNo", "quotationDate", "customerName", "address", "territory", "leadOwner", "contactPerson", "mobileNumber", "emailId", "dgRatingKva", "engineMake", "esns", "engineModel", "partNo", "partDesc", "partCategory", "qty", "basicAmount", "status", "lostReason", "salesStage", "stagePercent", "likelyMonthOfClosure", "supportRequired", "platform", "remarks", "createdAt"
     ]);
   };
 
@@ -271,7 +273,7 @@ export function QuotationsTab() {
               'FOS Name', 'Contact Person', 'Mobile Number', 'Email ID', 
               'DG Rating KVA', 'Engine Make', 'ESN', 'Engine Model', 
               'Part No', 'Part Desc', 'Part Category', 'QTY', 
-              'BASIC Amount', 'Sales Stage', 'Status', 'Likely Month Of Closure', 
+              'BASIC Amount', 'Sales Stage', 'Status', 'Lost Reason', 'Likely Month Of Closure', 
               'Support Required', 'Platform', 'Remarks'
             ]}
             onUpload={handleBulkUpload}
@@ -487,6 +489,17 @@ export function QuotationsTab() {
                 <Label>Address</Label>
                 <Input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
               </div>
+              {formData.status === 'Lost' && (
+                <div className="space-y-2">
+                  <Label className="text-rose-600 font-bold">Lost Reason / Remarks</Label>
+                  <Input 
+                    placeholder="Why was this quotation lost?"
+                    className="border-rose-200 focus:ring-rose-500/20"
+                    value={formData.lostReason} 
+                    onChange={e => setFormData({...formData, lostReason: e.target.value})} 
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Stage Remarks</Label>
                 <Input disabled value={formData.stageRemarks} className="bg-slate-50" />
@@ -549,9 +562,20 @@ export function QuotationsTab() {
                       <div className="text-[11px] text-indigo-600 font-bold mt-0.5">{q.stagePercent}%</div>
                     </TableCell>
                     <TableCell>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
-                        {q.status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit ${
+                          q.status === 'Lost' ? 'bg-rose-100 text-rose-600' : 
+                          q.status === 'Sale' ? 'bg-emerald-100 text-emerald-600' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {q.status}
+                        </span>
+                        {q.status === 'Lost' && q.lostReason && (
+                          <div className="text-[10px] font-medium text-rose-500 max-w-[120px] leading-tight italic">
+                            Reason: {q.lostReason}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(q)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all">

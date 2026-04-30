@@ -67,6 +67,7 @@
         "likelyMonthOfClosure": { "type": "string" },
         "supportRequired": { "type": "string" },
         "platform": { "type": "string" },
+        "lostReason": { "type": "string" },
         "remarks": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "userId": { "type": "string" }

@@ -66,6 +66,7 @@ export interface Quotation {
   likelyMonthOfClosure: string;
   supportRequired: string;
   platform: string;
+  lostReason?: string;
   remarks: string;
   createdAt: string;
   quotationDate: string;
